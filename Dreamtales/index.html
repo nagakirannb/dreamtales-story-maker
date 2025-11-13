@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#0b1d3b" />
+
+  <meta charset="UTF-8" />
+  <title>Kids Bedtime Story Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --midnight: #0b1d3b;
+      --yellow: #ffd66b;
+      --soft-bg: #f5f7ff;
+      --card-bg: #ffffff;
+      --border: #d0d6f0;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #e6ecff 0, #f7f8ff 40%, #fdfdff 100%);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 960px;
+      margin: 16px;
+      padding: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 20%, #fff 0, #ffe89a 40%, #f7d05a 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+
+    .brand-text {
+      font-weight: 700;
+      color: var(--midnight);
+      font-size: 18px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
+      gap: 18px;
+    }
+
+    @media (max-width: 800px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      padding: 18px 18px 22px;
+      border: 1px solid rgba(255, 255, 255, 0.7);
+    }
+
+    h1 {
+      font-size: 24px;
+      margin: 0 0 6px;
+      color: var(--midnight);
+    }
+
+    .subtitle {
+      color: #555;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: 600;
+      color: #222;
+      font-size: 14px;
+    }
+
+    input, select, button {
+      width: 100%;
+      margin-top: 6px;
+      padding: 9px 11px;
+      border-radius: 11px;
+      border: 1px solid var(--border);
+      font-size: 14px;
+      font-family: inherit;
+      background: #fdfdff;
+    }
+
+    input:focus, select:focus {
+      outline: 2px solid #c0ccff;
+      border-color: #a7b6ff;
+    }
+
+    button {
+      margin-top: 18px;
+      background: var(--yellow);
+      border: none;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.05s ease, box-shadow 0.1s ease;
+      color: #42210b;
+    }
+
+    button:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: wait;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .status {
+      font-size: 12px;
+      color: #666;
+      margin-top: 8px;
+    }
+
+    .storybook {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background: linear-gradient(135deg, #fdfbff, #f4f6ff);
+      border-radius: 18px;
+      border: 1px solid #e2e5ff;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+      padding: 18px 18px 22px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .storybook-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .storybook-title {
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--midnight);
+    }
+
+    .storybook-pill {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(255, 214, 107, 0.3);
+      color: #7a5a0a;
+    }
+
+    .storybook-body {
+      flex: 1;
+      overflow: hidden;
+      margin-top: 6px;
+      padding-right: 4px;
+      position: relative;
+    }
+
+    .storybook-page {
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      line-height: 1.55;
+      font-size: 14px;
+      color: #222;
+      white-space: pre-wrap;
+    }
+
+    .storybook-placeholder {
+      margin-top: 30px;
+      text-align: center;
+      color: #777;
+      font-size: 13px;
+    }
+
+    .moral-box {
+      margin-top: 10px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: #fff9da;
+      border: 1px dashed #f0d16b;
+      font-size: 13px;
+      color: #4a3907;
+    }
+
+    .moral-label {
+      font-weight: 700;
+      margin-right: 4px;
+    }
+
+    .storybook-footer {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #555;
+      border-top: 1px dashed #d0d6f0;
+      padding-top: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(11, 29, 59, 0.06);
+      font-size: 11px;
+      color: #444;
+    }
+
+    .pager-controls {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+    }
+
+    .pager-btn {
+      border-radius: 999px;
+      border: 1px solid #ccd2f5;
+      background: #ffffff;
+      padding: 4px 8px;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    .pager-btn:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+  </style>
+</head>
+<script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("service-worker.js").catch(console.error);
+  }
+</script>
+<body>
+  <div class="app-shell">
+    <div class="brand">
+      <div class="brand-icon">🌙</div>
+      <div class="brand-text">DreamTales – Story Maker</div>
+    </div>
+
+    <div class="layout">
+      <!-- LEFT: form -->
+      <div class="card">
+        <h1>Personalized Bedtime Stories</h1>
+        <div class="subtitle">
+          Enter a few details and let AI create a gentle bedtime story for your child.
+        </div>
+
+        <label>Child's Name</label>
+        <input id="childName" placeholder="e.g., Aarush" />
+
+        <label>Age</label>
+        <input id="age" type="number" min="2" max="12" placeholder="e.g., 6" />
+
+        <label>Theme (moral)</label>
+        <select id="theme">
+          <option>Kindness</option>
+          <option>Honesty</option>
+          <option>Courage</option>
+          <option>Sharing</option>
+          <option>Gratitude</option>
+        </select>
+
+        <label>Style</label>
+        <select id="style">
+          <option>Calm & Gentle</option>
+          <option>Funny</option>
+          <option>Magical Adventure</option>
+          <option>Animal Friends</option>
+        </select>
+
+        <label>Story Length</label>
+        <select id="length">
+          <option>Short</option>
+          <option selected>Medium</option>
+          <option>Long</option>
+        </select>
+
+        <button id="generateBtn">✨ Generate Story</button>
+
+        <div id="status" class="status"></div>
+      </div>
+
+      <!-- RIGHT: story viewer -->
+      <div class="storybook">
+        <div class="storybook-header">
+          <div class="storybook-title" id="storybookTitle">
+            Your storybook will appear here
+          </div>
+          <div class="storybook-pill" id="storybookPill">
+            Ready for bedtime
+          </div>
+        </div>
+
+        <div class="storybook-body">
+          <div class="storybook-page" id="storybookPage">
+            <div class="storybook-placeholder" id="storybookPlaceholder">
+              💫 When you generate a story, it will be displayed here in a book-style view.
+              <br /><br />
+              Each sentence becomes a page, so small stories have a few pages and longer ones have more.
+            </div>
+          </div>
+        </div>
+
+        <div class="moral-box" id="moralBox" style="display:none;">
+          <span class="moral-label">Moral:</span>
+          <span id="moralText"></span>
+        </div>
+
+        <div class="storybook-footer">
+          <span class="badge">Tip: Turn your phone sideways for a wider “storybook” feel.</span>
+          <div class="pager-controls">
+            <button id="prevPage" class="pager-btn" disabled>‹ Prev</button>
+            <span id="pageInfo">Page 0 of 0</span>
+            <button id="nextPage" class="pager-btn" disabled>Next ›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="status" style="text-align:center; margin-top:10px;">
+      Prototype preview – later we’ll add images via backend and make this your first real AI product.
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "/.netlify/functions/story"; // <-- your key
+
+    const btn = document.getElementById("generateBtn");
+    const statusEl = document.getElementById("status");
+    const titleEl = document.getElementById("storybookTitle");
+    const pillEl = document.getElementById("storybookPill");
+    const pageEl = document.getElementById("storybookPage");
+    const placeholderEl = document.getElementById("storybookPlaceholder");
+    const moralBox = document.getElementById("moralBox");
+    const moralText = document.getElementById("moralText");
+    const prevPageBtn = document.getElementById("prevPage");
+    const nextPageBtn = document.getElementById("nextPage");
+    const pageInfo = document.getElementById("pageInfo");
+
+    let storyPages = [];
+    let currentPageIndex = 0;
+    let currentMoralLine = "";
+
+    function renderPage() {
+      if (storyPages.length === 0) {
+        pageEl.innerHTML = "";
+        placeholderEl.style.display = "block";
+        pageInfo.textContent = "Page 0 of 0";
+        prevPageBtn.disabled = true;
+        nextPageBtn.disabled = true;
+        moralBox.style.display = "none";
+        return;
+      }
+
+      placeholderEl.style.display = "none";
+      pageEl.innerHTML = "";
+
+      const isLastPage = currentPageIndex === storyPages.length - 1;
+
+      const pageText = storyPages[currentPageIndex];
+      pageText.forEach(sentence => {
+        const p = document.createElement("p");
+        p.textContent = sentence;
+        pageEl.appendChild(p);
+      });
+
+      pageInfo.textContent = `Page ${currentPageIndex + 1} of ${storyPages.length}`;
+      prevPageBtn.disabled = currentPageIndex === 0;
+      nextPageBtn.disabled = currentPageIndex === storyPages.length - 1;
+
+      if (isLastPage && currentMoralLine) {
+        moralText.textContent = currentMoralLine;
+        moralBox.style.display = "block";
+      } else {
+        moralBox.style.display = "none";
+      }
+    }
+
+    prevPageBtn.addEventListener("click", () => {
+      if (currentPageIndex > 0) {
+        currentPageIndex--;
+        renderPage();
+      }
+    });
+
+    nextPageBtn.addEventListener("click", () => {
+      if (currentPageIndex < storyPages.length - 1) {
+        currentPageIndex++;
+        renderPage();
+      }
+    });
+
+    function sentenceRangeForLength(length) {
+      if (length === "Short") return "4–6 sentences";
+      if (length === "Long") return "14–20 sentences";
+      return "8–12 sentences"; // Medium
+    }
+
+    async function generateStory() {
+      const childName = document.getElementById("childName").value.trim();
+      const age = document.getElementById("age").value.trim();
+      const theme = document.getElementById("theme").value;
+      const style = document.getElementById("style").value;
+      const length = document.getElementById("length").value;
+
+      if (!childName || !age) {
+        alert("Please enter the child's name and age.");
+        return;
+      }
+
+      btn.disabled = true;
+      statusEl.textContent = "Creating a magical story...";
+      titleEl.textContent = "Writing a story for " + childName + "…";
+      pillEl.textContent = theme + " • " + style;
+      storyPages = [];
+      currentPageIndex = 0;
+      currentMoralLine = "";
+      renderPage();
+
+      const range = sentenceRangeForLength(length);
+
+      const userContent = `
+Create a bedtime story for a child.
+
+Child's Name: ${childName}
+Age: ${age}
+Theme (moral): ${theme}
+Style: ${style}
+Length: ${length}
+
+Rules:
+1. Use simple, age-appropriate language for a child of this age.
+2. Include the child’s name 4–6 times naturally.
+3. Keep the tone calm, gentle, and encouraging, suitable for bedtime.
+4. Add 1–2 cute or magical elements (e.g., friendly animals, stars, moon, talking toys).
+5. Write the main story in ${range}, as one continuous block of text. Do not label the sentences.
+6. At the end, write one clear sentence starting exactly with 'Moral:' that explains the lesson of the story.
+7. After the moral, add a new section titled 'Illustration Prompts:' and list 4 bullet-point prompts describing key scenes for an illustrator or image model.
+      `.trim();
+
+      try {
+        const response = await fetch("/.netlify/functions/story", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are a gentle, creative kids' bedtime story writer. You write   safe, soothing, age-appropriate stories."
+      },
+      { role: "user", content: userContent }
+    ]
+   })
+   });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error?.message || "API error: " + response.status);
+        }
+
+        const data = await response.json();
+        let storyRaw = data.choices?.[0]?.message?.content?.trim() || "No story generated.";
+
+        // Extract moral + strip from main text
+        let mainText = storyRaw;
+        let moralLine = "";
+
+        const moralMatch = storyRaw.match(/Moral:\s*(.*)/i);
+        if (moralMatch) {
+          moralLine = moralMatch[1].trim();
+        }
+
+        // Remove Illustration Prompts and everything after
+        const illuSplit = mainText.split(/Illustration Prompts:/i);
+        if (illuSplit.length > 1) {
+          mainText = illuSplit[0].trim();
+        }
+
+        // Remove the Moral line from the main story text
+        mainText = mainText.replace(/Moral:\s*.*$/mi, "").trim();
+
+        // Split into sentences (each sentence = 1 page)
+        const sentenceRegex = /[^.!?]+[.!?]/g;
+        const matches = mainText.match(sentenceRegex);
+        const sentences = (matches || [mainText])
+          .map(s => s.trim())
+          .filter(s => s.length > 0);
+
+        storyPages = sentences.map(s => [s]);
+        currentMoralLine = moralLine;
+        currentPageIndex = 0;
+        renderPage();
+
+        titleEl.textContent = "Bedtime story for " + childName;
+        statusEl.textContent = "Story ready ✨ Flip through the pages and read the moral on the last page.";
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Something went wrong: " + err.message;
+        titleEl.textContent = "Could not generate story";
+        storyPages = [];
+        currentPageIndex = 0;
+        currentMoralLine = "";
+        renderPage();
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    btn.addEventListener("click", generateStory);
+  </script>
+</body>
+</html>
