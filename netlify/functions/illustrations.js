@@ -41,12 +41,14 @@ exports.handler = async function (event, context) {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("Image API error:", data);
-      return {
-        statusCode: response.status,
-        body: JSON.stringify({ error: data.error || "Image API error" })
-      };
-    }
+  console.error("Image API error:", data);
+  return {
+    statusCode: response.status,
+    body: JSON.stringify({
+      error: data.error?.message || JSON.stringify(data) || "Image API error"
+    })
+  };
+}
 
     const url = data?.data?.[0]?.url || null;
 
