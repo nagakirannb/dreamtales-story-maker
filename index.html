@@ -464,17 +464,18 @@
         const data = await response.json();
 
         if (!response.ok || !data.url) {
-          console.error("Cover illustration error:", data);
-          statusEl.textContent += " (cover image unavailable)";
-          return;
-        }
+  console.error("Cover illustration error:", data);
+  statusEl.textContent += " (cover image error: " + (data.error || "unknown") + ")";
+  return;
+}
+
 
         coverImageUrl = data.url;
         renderPage();
         statusEl.textContent += " | Cover ready 🌟";
       } catch (err) {
         console.error("Cover illustration error:", err);
-        statusEl.textContent += " (error loading cover image)";
+        statusEl.textContent += " (error loading cover image: " + err.message + ")";
       }
     }
 
@@ -617,3 +618,4 @@ Rules:
   </script>
 </body>
 </html>
+
