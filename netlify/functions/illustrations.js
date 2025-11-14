@@ -1,4 +1,5 @@
 // netlify/functions/illustrations.js
+// Generates ONE cover illustration for a story
 
 exports.handler = async function (event, context) {
   try {
@@ -14,54 +15,45 @@ exports.handler = async function (event, context) {
     }
 
     const body = JSON.parse(event.body || "{}");
-    const prompts = Array.isArray(body.prompts) ? body.prompts : [];
+    const prompt = body.prompt;
 
-    if (prompts.length === 0) {
+    if (!prompt || typeof prompt !== "string") {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: "No prompts provided for illustrations." })
+        body: JSON.stringify({ error: "No prompt provided for illustration." })
       };
     }
 
-    // Limit cost: max 6 images
-    const maxImages = Math.min(prompts.length, 6);
+    const response = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "gpt-image-1",
+        prompt,
+        n: 1,
+        size: "512x512"
+      })
+    });
 
-    const urls = [];
+    const data = await response.json();
 
-    for (let i = 0; i < maxImages; i++) {
-      const prompt = prompts[i];
-
-      const response = await fetch("https://api.openai.com/v1/images/generations", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "gpt-image-1",
-          prompt: prompt,
-          n: 1,
-          size: "512x512"
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error("Image API error:", data);
-        // skip this one, continue with others
-        urls.push(null);
-        continue;
-      }
-
-      const url = data?.data?.[0]?.url || null;
-      urls.push(url);
+    if (!response.ok) {
+      console.error("Image API error:", data);
+      return {
+        statusCode: response.status,
+        body: JSON.stringify({ error: data.error || "Image API error" })
+      };
     }
+
+    const url = data?.data?.[0]?.url || null;
 
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ urls })
+      body: JSON.stringify({ url })
     };
   } catch (err) {
     console.error("Illustrations function error:", err);
