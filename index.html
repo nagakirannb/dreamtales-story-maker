@@ -328,7 +328,7 @@
           </div>
         </div>
 
-        <div class="storybook-body">
+        <div class="storybook-">
           <div class="storybook-page" id="storybookPage">
             <div class="storybook-placeholder" id="storybookPlaceholder">
               💫 When you generate a story, it will be displayed here in a book-style view.
@@ -449,7 +449,7 @@
         const response = await fetch("/.netlify/functions/illustrations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompts })
+          : JSON.stringify({ prompts })
         });
 
         const data = await response.json();
@@ -523,7 +523,7 @@ Rules:
         const response = await fetch("/.netlify/functions/story", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+          : JSON.stringify({
             messages: [
               {
                 role: "system",
@@ -617,4 +617,5 @@ Rules:
   </script>
 </body>
 </html>
+
 
