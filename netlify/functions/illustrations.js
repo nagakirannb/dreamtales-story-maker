@@ -34,7 +34,7 @@ exports.handler = async function (event, context) {
         model: "gpt-image-1",
         prompt,
         n: 1,
-        size: "512x512"
+        size: "1024x1536"
       })
     });
 
