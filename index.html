@@ -424,50 +424,57 @@
     const nextPageBtn = document.getElementById("nextPage");
     const pageInfo = document.getElementById("pageInfo");
 
-    function renderPage() {
-      if (storyPages.length === 0) {
-        pageEl.innerHTML = "";
-        placeholderEl.style.display = "block";
-        pageInfo.textContent = "Page 0 of 0";
-        prevPageBtn.disabled = true;
-        nextPageBtn.disabled = true;
-        moralBox.style.display = "none";
-        return;
-      }
+   function renderPage() {
+  if (storyPages.length === 0) {
+    pageEl.innerHTML = "";
+    placeholderEl.style.display = "block";
+    pageInfo.textContent = "Page 0 of 0";
+    prevPageBtn.disabled = true;
+    nextPageBtn.disabled = true;
+    moralBox.style.display = "none";
+    return;
+  }
 
-      placeholderEl.style.display = "none";
-      pageEl.innerHTML = "";
+  placeholderEl.style.display = "none";
+  pageEl.innerHTML = "";
 
-      const isFirstPage = currentPageIndex === 0;
-      const isLastPage = currentPageIndex === storyPages.length - 1;
+  const isFirstPage = currentPageIndex === 0;
+  const isLastPage = currentPageIndex === storyPages.length - 1;
 
-      // Cover image only on first page
-      if (isFirstPage && coverImageUrl) {
-        const img = document.createElement("img");
-        img.src = coverImageUrl;
-        img.alt = "Story cover illustration";
-        img.className = "page-image";
-        pageEl.appendChild(img);
-      }
+  // Cover image only on first page
+  if (isFirstPage && coverImageUrl) {
+    const img = document.createElement("img");
+    img.src = coverImageUrl;
+    img.alt = "Story cover illustration";
+    img.className = "page-image";
+    pageEl.appendChild(img);
+  }
 
-      const pageText = storyPages[currentPageIndex];
-      pageText.forEach(sentence => {
-        const p = document.createElement("p");
-        p.textContent = sentence;
-        pageEl.appendChild(p);
-      });
+  const pageText = storyPages[currentPageIndex];
+  pageText.forEach(sentence => {
+    const p = document.createElement("p");
+    p.textContent = sentence;
+    pageEl.appendChild(p);
+  });
 
-      pageInfo.textContent = `Page ${currentPageIndex + 1} of ${storyPages.length}`;
-      prevPageBtn.disabled = currentPageIndex === 0;
-      nextPageBtn.disabled = currentPageIndex === storyPages.length - 1;
+  // trigger small page-turn animation
+  pageEl.classList.remove("page-fade");
+  // force reflow to restart animation
+  void pageEl.offsetWidth;
+  pageEl.classList.add("page-fade");
 
-      if (isLastPage && currentMoralLine) {
-        moralText.textContent = currentMoralLine;
-        moralBox.style.display = "block";
-      } else {
-        moralBox.style.display = "none";
-      }
-    }
+  pageInfo.textContent = `Page ${currentPageIndex + 1} of ${storyPages.length}`;
+  prevPageBtn.disabled = currentPageIndex === 0;
+  nextPageBtn.disabled = currentPageIndex === storyPages.length - 1;
+
+  if (isLastPage && currentMoralLine) {
+    moralText.textContent = currentMoralLine;
+    moralBox.style.display = "block";
+  } else {
+    moralBox.style.display = "none";
+  }
+}
+
 
     prevPageBtn.addEventListener("click", () => {
       if (currentPageIndex > 0) {
@@ -663,5 +670,6 @@ Rules:
   </script>
 </body>
 </html>
+
 
 
