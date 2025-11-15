@@ -508,14 +508,23 @@
       try {
         statusEl.textContent += " | Generating cover illustration…";
         const response = await fetch("/.netlify/functions/illustrations", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt })
-        });
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ prompt })
+});
 
-        const data = await response.json();
+let dataText = await response.text();
+let data;
 
-        if (!response.ok || !data.url) {
+try {
+  data = dataText ? JSON.parse(dataText) : {};
+} catch (e) {
+  console.error("Non-JSON cover response:", dataText);
+  statusEl.textContent += " (cover image error: non-JSON response from server)";
+  return;
+}
+
+if (!response.ok || !data.url) {
   console.error("Cover illustration error:", data);
   statusEl.textContent += " (cover image error: " + (data.error || "unknown") + ")";
   return;
@@ -670,6 +679,7 @@ Rules:
   </script>
 </body>
 </html>
+
 
 
 
