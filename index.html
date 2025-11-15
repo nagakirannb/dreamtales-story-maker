@@ -140,24 +140,43 @@
     }
 
     .storybook {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      background: linear-gradient(135deg, #fdfbff, #f4f6ff);
-      border-radius: 18px;
-      border: 1px solid #e2e5ff;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-      padding: 18px 18px 22px;
-      position: relative;
-      overflow: hidden;
-    }
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #fdf7ec;
+  border-radius: 22px;
+  border: 1px solid #f4e3c2;
+  box-shadow:
+    0 18px 35px rgba(148, 131, 104, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.7);
+  padding: 14px 16px 18px;
+  position: relative;
+  overflow: hidden;
+}
 
-    .storybook-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
+    /* subtle spine down the middle */
+.storybook::before {
+  content: "";
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: 50%;
+  width: 3px;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.8),
+    rgba(0, 0, 0, 0.06),
+    rgba(255, 255, 255, 0.8)
+  );
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.storybook-header {
+  position: relative;
+  z-index: 1;
+}
 
     .storybook-title {
       font-weight: 700;
@@ -174,31 +193,57 @@
     }
 
     .storybook-body {
-      flex: 1;
-      overflow: hidden;
-      margin-top: 6px;
-      padding-right: 4px;
-      position: relative;
-    }
+  flex: 1;
+  overflow: hidden;
+  margin-top: 8px;
+  padding-right: 4px;
+  position: relative;
+}
 
-    .storybook-page {
-      width: 100%;
-      height: 100%;
-      overflow-y: auto;
-      line-height: 1.55;
-      font-size: 14px;
-      color: #222;
-      white-space: pre-wrap;
-    }
+/* The "paper" for each page */
+.storybook-page {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  line-height: 1.7;
+  font-size: 15px;
+  color: #3b2b1a;
+  white-space: pre-wrap;
+  background: radial-gradient(circle at top, #fffaf0 0, #fff4dd 45%, #ffeccd 100%);
+  border-radius: 16px;
+  padding: 14px 18px 16px;
+  box-shadow:
+    inset 3px 0 6px rgba(255, 255, 255, 0.7),
+    inset -3px 0 6px rgba(210, 180, 140, 0.35);
+}
+
+    /* subtle fade/slide for page turns */
+.page-fade {
+  animation: pageFade 0.22s ease-out;
+}
+
+@keyframes pageFade {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
 
     .page-image {
-      width: 100%;
-      max-height: 260px;
-      object-fit: cover;
-      border-radius: 14px;
-      margin-bottom: 10px;
-      background: #eee;
-    }
+  width: 100%;
+  max-height: 260px;
+  object-fit: cover;
+  border-radius: 16px;
+  margin-bottom: 12px;
+  background: #eee;
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.18),
+    0 0 0 1px rgba(255, 255, 255, 0.8);
+}
 
     .storybook-placeholder {
       margin-top: 30px;
@@ -618,4 +663,5 @@ Rules:
   </script>
 </body>
 </html>
+
 
