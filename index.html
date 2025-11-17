@@ -300,6 +300,7 @@
       padding: 4px 8px;
       cursor: pointer;
       font-size: 11px;
+      white-space: nowrap;
     }
 
     .pager-btn:disabled {
@@ -442,7 +443,9 @@
 
         <div class="storybook-footer">
           <span class="badge">Tip: Turn your phone sideways for a wider “storybook” feel.</span>
-          <div style="display:flex; align-items:center; gap:8px;">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+            <button id="copyStoryBtn" class="pager-btn" disabled>Copy</button>
+            <button id="downloadStoryBtn" class="pager-btn" disabled>Download .txt</button>
             <button id="saveStoryBtn" class="pager-btn" disabled>Save story</button>
             <div class="pager-controls">
               <button id="prevPage" class="pager-btn" disabled>‹ Prev</button>
@@ -458,7 +461,7 @@
       Prototype preview – illustrations are generated on the server to keep your API key safe.
     </div>
     <div id="authStatus" class="status" style="text-align:center; margin-top:4px;">
-      Sign in to eventually save your favorite stories (coming soon).
+      Sign in to group saved stories under your account (on this device).
     </div>
 
     <div id="savedStoriesSection" class="saved-stories">
@@ -507,6 +510,8 @@
     const authStatus = document.getElementById("authStatus");
     const saveStoryBtn = document.getElementById("saveStoryBtn");
     const savedStoriesList = document.getElementById("savedStoriesList");
+    const copyStoryBtn = document.getElementById("copyStoryBtn");
+    const downloadStoryBtn = document.getElementById("downloadStoryBtn");
 
     function renderPage() {
       if (storyPages.length === 0) {
@@ -517,6 +522,8 @@
         nextPageBtn.disabled = true;
         moralBox.style.display = "none";
         saveStoryBtn.disabled = true;
+        if (copyStoryBtn) copyStoryBtn.disabled = true;
+        if (downloadStoryBtn) downloadStoryBtn.disabled = true;
         return;
       }
 
@@ -559,8 +566,10 @@
         moralBox.style.display = "none";
       }
 
-      // Enable save button if we have pages
-      saveStoryBtn.disabled = storyPages.length === 0;
+      const hasStory = storyPages.length > 0;
+      saveStoryBtn.disabled = !hasStory;
+      if (copyStoryBtn) copyStoryBtn.disabled = !hasStory;
+      if (downloadStoryBtn) downloadStoryBtn.disabled = !hasStory;
     }
 
     prevPageBtn.addEventListener("click", () => {
@@ -702,8 +711,84 @@
       statusEl.textContent = "Story saved locally ✔";
     }
 
+    function getFullStoryText() {
+      if (!storyPages.length) return "";
+
+      const headerLines = [];
+      if (lastChildName) headerLines.push(`Child: ${lastChildName}${lastAge ? " (age " + lastAge + ")" : ""}`);
+      if (lastTheme || lastStyle) headerLines.push(`Theme: ${lastTheme || ""} | Style: ${lastStyle || ""}`);
+      if (lastLength) headerLines.push(`Length: ${lastLength}`);
+
+      const storyLines = [];
+      storyPages.forEach(page => {
+        const text = page.join(" ").trim();
+        if (text) storyLines.push(text);
+      });
+
+      const moralLine = currentMoralLine ? `Moral: ${currentMoralLine}` : "";
+
+      return [
+        (headerLines.join("\n") || "Bedtime story"),
+        "",
+        ...storyLines,
+        "",
+        moralLine
+      ].join("\n");
+    }
+
+    async function copyCurrentStory() {
+      if (!storyPages.length) return;
+      const text = getFullStoryText();
+      if (!text) return;
+
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          const textarea = document.createElement("textarea");
+          textarea.value = text;
+          textarea.style.position = "fixed";
+          textarea.style.left = "-9999px";
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand("copy");
+          document.body.removeChild(textarea);
+        }
+        statusEl.textContent = "Story copied to clipboard ✔";
+      } catch (e) {
+        console.error("Copy failed:", e);
+        statusEl.textContent = "Could not copy story: " + e.message;
+      }
+    }
+
+    function downloadCurrentStory() {
+      if (!storyPages.length) return;
+      const text = getFullStoryText();
+      if (!text) return;
+
+      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const safeName = lastChildName ? `dreamtales_${lastChildName}.txt` : "dreamtales_story.txt";
+      a.href = url;
+      a.download = safeName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      statusEl.textContent = "Story downloaded as text file ✔";
+    }
+
     if (saveStoryBtn) {
       saveStoryBtn.addEventListener("click", saveCurrentStory);
+    }
+
+    if (copyStoryBtn) {
+      copyStoryBtn.addEventListener("click", copyCurrentStory);
+    }
+
+    if (downloadStoryBtn) {
+      downloadStoryBtn.addEventListener("click", downloadCurrentStory);
     }
 
     async function generateCoverIllustration(childName, age, theme, illustrationPrompts) {
@@ -770,6 +855,9 @@
 
       btn.disabled = true;
       saveStoryBtn.disabled = true;
+      if (copyStoryBtn) copyStoryBtn.disabled = true;
+      if (downloadStoryBtn) downloadStoryBtn.disabled = true;
+
       statusEl.textContent = "Creating a magical story...";
       titleEl.textContent = "Writing a story for " + childName + "…";
       pillEl.textContent = theme + " • " + style;
@@ -873,8 +961,10 @@ Rules:
           generateCoverIllustration(childName, age, theme, currentIllustrationPrompts);
         }
 
-        // enable save button now that we have a story
+        // enable actions now that we have a story
         saveStoryBtn.disabled = false;
+        if (copyStoryBtn) copyStoryBtn.disabled = false;
+        if (downloadStoryBtn) downloadStoryBtn.disabled = false;
       } catch (err) {
         console.error(err);
         statusEl.textContent = "Something went wrong: " + err.message;
