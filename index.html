@@ -133,6 +133,14 @@
       transform: none;
     }
 
+    .auth-btn {
+      width: auto;
+      padding-inline: 14px;
+      margin-top: 0;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
     .status {
       font-size: 12px;
       color: #666;
@@ -298,18 +306,63 @@
       opacity: 0.4;
       cursor: default;
     }
-      .auth-btn {
-      width: auto;
-      padding-inline: 14px;
-      margin-top: 0;
+
+    /* Saved stories section */
+
+    .saved-stories {
+      margin-top: 16px;
+      background: rgba(255, 255, 255, 0.92);
+      border-radius: 14px;
+      padding: 12px 16px 14px;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
       font-size: 13px;
-      white-space: nowrap;
     }
 
+    .saved-stories h2 {
+      margin: 0 0 6px;
+      font-size: 14px;
+      color: var(--midnight);
+    }
+
+    .saved-stories-note {
+      font-size: 11px;
+      color: #6b7280;
+      margin-bottom: 6px;
+    }
+
+    .saved-stories-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .saved-story-item {
+      padding: 6px 10px;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+      cursor: pointer;
+      font-size: 12px;
+      color: #374151;
+      display: inline-flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 140px;
+    }
+
+    .saved-story-item span:first-child {
+      font-weight: 600;
+    }
+
+    .saved-story-meta {
+      font-size: 11px;
+      color: #6b7280;
+    }
   </style>
 </head>
 <body>
-    <div class="app-shell">
+  <div class="app-shell">
     <div class="brand">
       <div style="display:flex; align-items:center; gap:10px; flex:1;">
         <div class="brand-icon">🌙</div>
@@ -317,6 +370,7 @@
       </div>
       <button id="authBtn" class="auth-btn">Sign in</button>
     </div>
+
     <div class="layout">
       <!-- LEFT: form -->
       <div class="card">
@@ -388,32 +442,55 @@
 
         <div class="storybook-footer">
           <span class="badge">Tip: Turn your phone sideways for a wider “storybook” feel.</span>
-          <div class="pager-controls">
-            <button id="prevPage" class="pager-btn" disabled>‹ Prev</button>
-            <span id="pageInfo">Page 0 of 0</span>
-            <button id="nextPage" class="pager-btn" disabled>Next ›</button>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button id="saveStoryBtn" class="pager-btn" disabled>Save story</button>
+            <div class="pager-controls">
+              <button id="prevPage" class="pager-btn" disabled>‹ Prev</button>
+              <span id="pageInfo">Page 0 of 0</span>
+              <button id="nextPage" class="pager-btn" disabled>Next ›</button>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-        <div class="status" style="text-align:center; margin-top:10px;">
+    <div class="status" style="text-align:center; margin-top:10px;">
       Prototype preview – illustrations are generated on the server to keep your API key safe.
     </div>
-
     <div id="authStatus" class="status" style="text-align:center; margin-top:4px;">
       Sign in to eventually save your favorite stories (coming soon).
     </div>
 
+    <div id="savedStoriesSection" class="saved-stories">
+      <h2>My saved stories (this device)</h2>
+      <div class="saved-stories-note">
+        Stories are stored in this browser only, and grouped by your signed-in account.
+      </div>
+      <div id="savedStoriesList" class="saved-stories-list">
+        <div class="status">No stories saved yet.</div>
+      </div>
+    </div>
   </div>
 
+  <!-- Netlify Identity widget -->
   <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+
   <script>
     let storyPages = [];
     let currentPageIndex = 0;
     let currentMoralLine = "";
     let currentIllustrationPrompts = [];
     let coverImageUrl = null;
+
+    // To save metadata for current story
+    let lastChildName = "";
+    let lastAge = "";
+    let lastTheme = "";
+    let lastStyle = "";
+    let lastLength = "";
+
+    // Saved stories (per user/per device)
+    let savedStories = [];
 
     const btn = document.getElementById("generateBtn");
     const statusEl = document.getElementById("status");
@@ -428,7 +505,8 @@
     const pageInfo = document.getElementById("pageInfo");
     const authBtn = document.getElementById("authBtn");
     const authStatus = document.getElementById("authStatus");
-
+    const saveStoryBtn = document.getElementById("saveStoryBtn");
+    const savedStoriesList = document.getElementById("savedStoriesList");
 
     function renderPage() {
       if (storyPages.length === 0) {
@@ -438,6 +516,7 @@
         prevPageBtn.disabled = true;
         nextPageBtn.disabled = true;
         moralBox.style.display = "none";
+        saveStoryBtn.disabled = true;
         return;
       }
 
@@ -479,6 +558,9 @@
       } else {
         moralBox.style.display = "none";
       }
+
+      // Enable save button if we have pages
+      saveStoryBtn.disabled = storyPages.length === 0;
     }
 
     prevPageBtn.addEventListener("click", () => {
@@ -499,6 +581,129 @@
       if (length === "Short") return "4–6 sentences";
       if (length === "Long") return "14–20 sentences";
       return "8–12 sentences"; // Medium
+    }
+
+    function getStorageKeyForUser() {
+      let userId = "guest";
+      if (typeof netlifyIdentity !== "undefined") {
+        const user = netlifyIdentity.currentUser();
+        if (user) {
+          userId = user.id || user.email || "guest";
+        }
+      }
+      return "dreamtales_stories_" + userId;
+    }
+
+    function loadStoriesFromStorage() {
+      const key = getStorageKeyForUser();
+      try {
+        const raw = localStorage.getItem(key);
+        savedStories = raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        savedStories = [];
+      }
+      renderSavedStories();
+    }
+
+    function saveStoriesToStorage() {
+      const key = getStorageKeyForUser();
+      try {
+        localStorage.setItem(key, JSON.stringify(savedStories));
+      } catch (e) {
+        console.error("Error saving stories:", e);
+      }
+    }
+
+    function renderSavedStories() {
+      if (!savedStoriesList) return;
+      savedStoriesList.innerHTML = "";
+
+      if (!savedStories.length) {
+        const empty = document.createElement("div");
+        empty.className = "status";
+        empty.textContent = "No stories saved yet.";
+        savedStoriesList.appendChild(empty);
+        return;
+      }
+
+      savedStories.forEach(story => {
+        const item = document.createElement("div");
+        item.className = "saved-story-item";
+        item.dataset.id = story.id;
+
+        const titleSpan = document.createElement("span");
+        titleSpan.textContent = story.title || `Story for ${story.childName || "child"}`;
+
+        const metaSpan = document.createElement("span");
+        metaSpan.className = "saved-story-meta";
+        const date = story.createdAt ? new Date(story.createdAt) : null;
+        const dateStr = date ? date.toLocaleDateString() : "";
+        metaSpan.textContent = `${story.childName || "Child"} • ${story.theme || ""} • ${dateStr}`;
+
+        item.appendChild(titleSpan);
+        item.appendChild(metaSpan);
+
+        item.addEventListener("click", () => {
+          loadStoryIntoViewer(story.id);
+        });
+
+        savedStoriesList.appendChild(item);
+      });
+    }
+
+    function loadStoryIntoViewer(storyId) {
+      const story = savedStories.find(s => s.id === storyId);
+      if (!story) return;
+
+      storyPages = story.pages || [];
+      currentMoralLine = story.moral || "";
+      coverImageUrl = story.coverImageUrl || null;
+      currentPageIndex = 0;
+
+      lastChildName = story.childName || "";
+      lastAge = story.age || "";
+      lastTheme = story.theme || "";
+      lastStyle = story.style || "";
+      lastLength = story.length || "";
+
+      titleEl.textContent = story.title || `Bedtime story for ${lastChildName || "your child"}`;
+      pillEl.textContent = `${story.theme || "Story"} • ${story.style || ""}`;
+
+      renderPage();
+      statusEl.textContent = "Loaded saved story.";
+    }
+
+    function saveCurrentStory() {
+      if (!storyPages.length) return;
+
+      const id = Date.now().toString();
+      const title =
+        lastChildName
+          ? `Story for ${lastChildName}`
+          : "Bedtime story";
+
+      const storyObj = {
+        id,
+        title,
+        childName: lastChildName,
+        age: lastAge,
+        theme: lastTheme,
+        style: lastStyle,
+        length: lastLength,
+        createdAt: new Date().toISOString(),
+        pages: storyPages,
+        moral: currentMoralLine,
+        coverImageUrl
+      };
+
+      savedStories.unshift(storyObj); // newest on top
+      saveStoriesToStorage();
+      renderSavedStories();
+      statusEl.textContent = "Story saved locally ✔";
+    }
+
+    if (saveStoryBtn) {
+      saveStoryBtn.addEventListener("click", saveCurrentStory);
     }
 
     async function generateCoverIllustration(childName, age, theme, illustrationPrompts) {
@@ -556,7 +761,15 @@
         return;
       }
 
+      // remember metadata for saving
+      lastChildName = childName;
+      lastAge = age;
+      lastTheme = theme;
+      lastStyle = style;
+      lastLength = length;
+
       btn.disabled = true;
+      saveStoryBtn.disabled = true;
       statusEl.textContent = "Creating a magical story...";
       titleEl.textContent = "Writing a story for " + childName + "…";
       pillEl.textContent = theme + " • " + style;
@@ -659,6 +872,9 @@ Rules:
         if (currentIllustrationPrompts.length > 0) {
           generateCoverIllustration(childName, age, theme, currentIllustrationPrompts);
         }
+
+        // enable save button now that we have a story
+        saveStoryBtn.disabled = false;
       } catch (err) {
         console.error(err);
         statusEl.textContent = "Something went wrong: " + err.message;
@@ -673,33 +889,41 @@ Rules:
         btn.disabled = false;
       }
     }
-        function updateAuthUI(user) {
+
+    function updateAuthUI(user) {
       if (!authBtn || !authStatus) return;
       if (user) {
         const name = user.user_metadata && user.user_metadata.full_name;
         authBtn.textContent = "Log out";
-        authStatus.textContent = `Signed in as ${name || user.email}. Saving stories coming soon.`;
+        authStatus.textContent = `Signed in as ${name || user.email}. Stories are saved per account on this device.`;
       } else {
         authBtn.textContent = "Sign in";
-        authStatus.textContent = "Sign in to eventually save your favorite stories (coming soon).";
+        authStatus.textContent = "Sign in to group saved stories under your account (on this device).";
       }
     }
 
+    // Netlify Identity wiring
     if (typeof netlifyIdentity !== "undefined") {
       netlifyIdentity.on("init", user => {
         updateAuthUI(user);
+        loadStoriesFromStorage();
       });
 
       netlifyIdentity.on("login", user => {
         updateAuthUI(user);
         netlifyIdentity.close();
+        loadStoriesFromStorage();
       });
 
       netlifyIdentity.on("logout", () => {
         updateAuthUI(null);
+        loadStoriesFromStorage();
       });
 
       netlifyIdentity.init();
+    } else {
+      // no identity; still load guest stories
+      loadStoriesFromStorage();
     }
 
     if (authBtn) {
@@ -714,15 +938,12 @@ Rules:
       });
     }
 
-
     btn.addEventListener("click", generateStory);
 
     // Register service worker for PWA
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("service-worker.js").catch(console.error);
     }
-      
-    </script>
+  </script>
 </body>
 </html>
-
