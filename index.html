@@ -298,15 +298,25 @@
       opacity: 0.4;
       cursor: default;
     }
+      .auth-btn {
+      width: auto;
+      padding-inline: 14px;
+      margin-top: 0;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
   </style>
 </head>
 <body>
-  <div class="app-shell">
+    <div class="app-shell">
     <div class="brand">
-      <div class="brand-icon">🌙</div>
-      <div class="brand-text">DreamTales – Bedtime Story Maker</div>
+      <div style="display:flex; align-items:center; gap:10px; flex:1;">
+        <div class="brand-icon">🌙</div>
+        <div class="brand-text">DreamTales – Bedtime Story Maker</div>
+      </div>
+      <button id="authBtn" class="auth-btn">Sign in</button>
     </div>
-
     <div class="layout">
       <!-- LEFT: form -->
       <div class="card">
@@ -387,11 +397,17 @@
       </div>
     </div>
 
-    <div class="status" style="text-align:center; margin-top:10px;">
+        <div class="status" style="text-align:center; margin-top:10px;">
       Prototype preview – illustrations are generated on the server to keep your API key safe.
     </div>
+
+    <div id="authStatus" class="status" style="text-align:center; margin-top:4px;">
+      Sign in to eventually save your favorite stories (coming soon).
+    </div>
+
   </div>
 
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
   <script>
     let storyPages = [];
     let currentPageIndex = 0;
@@ -410,6 +426,9 @@
     const prevPageBtn = document.getElementById("prevPage");
     const nextPageBtn = document.getElementById("nextPage");
     const pageInfo = document.getElementById("pageInfo");
+    const authBtn = document.getElementById("authBtn");
+    const authStatus = document.getElementById("authStatus");
+
 
     function renderPage() {
       if (storyPages.length === 0) {
@@ -654,6 +673,47 @@ Rules:
         btn.disabled = false;
       }
     }
+        function updateAuthUI(user) {
+      if (!authBtn || !authStatus) return;
+      if (user) {
+        const name = user.user_metadata && user.user_metadata.full_name;
+        authBtn.textContent = "Log out";
+        authStatus.textContent = `Signed in as ${name || user.email}. Saving stories coming soon.`;
+      } else {
+        authBtn.textContent = "Sign in";
+        authStatus.textContent = "Sign in to eventually save your favorite stories (coming soon).";
+      }
+    }
+
+    if (typeof netlifyIdentity !== "undefined") {
+      netlifyIdentity.on("init", user => {
+        updateAuthUI(user);
+      });
+
+      netlifyIdentity.on("login", user => {
+        updateAuthUI(user);
+        netlifyIdentity.close();
+      });
+
+      netlifyIdentity.on("logout", () => {
+        updateAuthUI(null);
+      });
+
+      netlifyIdentity.init();
+    }
+
+    if (authBtn) {
+      authBtn.addEventListener("click", () => {
+        if (!netlifyIdentity) return;
+        const user = netlifyIdentity.currentUser();
+        if (user) {
+          netlifyIdentity.logout();
+        } else {
+          netlifyIdentity.open("login");
+        }
+      });
+    }
+
 
     btn.addEventListener("click", generateStory);
 
@@ -661,6 +721,8 @@ Rules:
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("service-worker.js").catch(console.error);
     }
-  </script>
+      
+    </script>
 </body>
 </html>
+
