@@ -195,7 +195,6 @@
       position: relative;
     }
 
-    /* The "page" itself */
     .storybook-page {
       width: 100%;
       height: 100%;
@@ -212,7 +211,6 @@
         0 0 0 1px rgba(255, 255, 255, 0.8);
     }
 
-    /* subtle fade/slide for page turns */
     .page-fade {
       animation: pageFade 0.2s ease-out;
     }
@@ -307,8 +305,6 @@
       opacity: 0.4;
       cursor: default;
     }
-
-    /* Saved stories section */
 
     .saved-stories {
       margin-top: 16px;
@@ -467,7 +463,7 @@
     <div id="savedStoriesSection" class="saved-stories">
       <h2>My saved stories (this device)</h2>
       <div class="saved-stories-note">
-        Stories are stored in this browser only, and grouped by your signed-in account.
+        Stories are stored in this browser and synced to the cloud for signed-in accounts.
       </div>
       <div id="savedStoriesList" class="saved-stories-list">
         <div class="status">No stories saved yet.</div>
@@ -485,14 +481,14 @@
     let currentIllustrationPrompts = [];
     let coverImageUrl = null;
 
-    // To save metadata for current story
+    // metadata for the current story
     let lastChildName = "";
     let lastAge = "";
     let lastTheme = "";
     let lastStyle = "";
     let lastLength = "";
 
-    // Saved stories (per user/per device)
+    // saved stories (local representation)
     let savedStories = [];
 
     const btn = document.getElementById("generateBtn");
@@ -513,92 +509,18 @@
     const copyStoryBtn = document.getElementById("copyStoryBtn");
     const downloadStoryBtn = document.getElementById("downloadStoryBtn");
 
-    function renderPage() {
-      if (storyPages.length === 0) {
-        pageEl.innerHTML = "";
-        placeholderEl.style.display = "block";
-        pageInfo.textContent = "Page 0 of 0";
-        prevPageBtn.disabled = true;
-        nextPageBtn.disabled = true;
-        moralBox.style.display = "none";
-        saveStoryBtn.disabled = true;
-        if (copyStoryBtn) copyStoryBtn.disabled = true;
-        if (downloadStoryBtn) downloadStoryBtn.disabled = true;
-        return;
-      }
+    // ---------- helpers for auth + storage ----------
 
-      placeholderEl.style.display = "none";
-      pageEl.innerHTML = "";
-
-      const isFirstPage = currentPageIndex === 0;
-      const isLastPage = currentPageIndex === storyPages.length - 1;
-
-      // Cover image only on first page
-      if (isFirstPage && coverImageUrl) {
-        const img = document.createElement("img");
-        img.src = coverImageUrl;
-        img.alt = "Story cover illustration";
-        img.className = "page-image";
-        pageEl.appendChild(img);
-      }
-
-      const pageText = storyPages[currentPageIndex];
-      pageText.forEach(sentence => {
-        const p = document.createElement("p");
-        p.textContent = sentence;
-        pageEl.appendChild(p);
-      });
-
-      // trigger small page-turn animation
-      pageEl.classList.remove("page-fade");
-      // force reflow to restart animation
-      void pageEl.offsetWidth;
-      pageEl.classList.add("page-fade");
-
-      pageInfo.textContent = `Page ${currentPageIndex + 1} of ${storyPages.length}`;
-      prevPageBtn.disabled = currentPageIndex === 0;
-      nextPageBtn.disabled = currentPageIndex === storyPages.length - 1;
-
-      if (isLastPage && currentMoralLine) {
-        moralText.textContent = currentMoralLine;
-        moralBox.style.display = "block";
-      } else {
-        moralBox.style.display = "none";
-      }
-
-      const hasStory = storyPages.length > 0;
-      saveStoryBtn.disabled = !hasStory;
-      if (copyStoryBtn) copyStoryBtn.disabled = !hasStory;
-      if (downloadStoryBtn) downloadStoryBtn.disabled = !hasStory;
-    }
-
-    prevPageBtn.addEventListener("click", () => {
-      if (currentPageIndex > 0) {
-        currentPageIndex--;
-        renderPage();
-      }
-    });
-
-    nextPageBtn.addEventListener("click", () => {
-      if (currentPageIndex < storyPages.length - 1) {
-        currentPageIndex++;
-        renderPage();
-      }
-    });
-
-    function sentenceRangeForLength(length) {
-      if (length === "Short") return "4–6 sentences";
-      if (length === "Long") return "14–20 sentences";
-      return "8–12 sentences"; // Medium
+    function getCurrentIdentityUser() {
+      if (typeof netlifyIdentity === "undefined") return null;
+      return netlifyIdentity.currentUser();
     }
 
     function getStorageKeyForUser() {
       let userId = "guest";
-      if (typeof netlifyIdentity !== "undefined") {
-        const user = netlifyIdentity.currentUser();
-        if (user) {
-          userId = user.id || user.email || "guest";
-        }
+      const user = getCurrentIdentityUser();
+      if (user) {
+        userId = user.id || user.email || "guest";
       }
       return "dreamtales_stories_" + userId;
     }
@@ -609,6 +531,7 @@
         const raw = localStorage.getItem(key);
         savedStories = raw ? JSON.parse(raw) : [];
       } catch (e) {
+        console.error("Error reading local stories:", e);
         savedStories = [];
       }
       renderSavedStories();
@@ -619,9 +542,81 @@
       try {
         localStorage.setItem(key, JSON.stringify(savedStories));
       } catch (e) {
-        console.error("Error saving stories:", e);
+        console.error("Error saving local stories:", e);
       }
     }
+
+    function mapCloudStoryToLocal(s) {
+      if (!s) return null;
+      return {
+        id: s.id,
+        title: s.title,
+        childName: s.child_name,
+        age: s.age,
+        theme: s.theme,
+        style: s.style,
+        length: s.length,
+        createdAt: s.created_at,
+        pages: s.pages,
+        moral: s.moral,
+        coverImageUrl: s.cover_image_url
+      };
+    }
+
+    async function callCloudStories(method, payload) {
+      const user = getCurrentIdentityUser();
+      if (!user) {
+        throw new Error("Not signed in");
+      }
+      const token = await user.jwt(); // Netlify Identity JWT
+
+      const res = await fetch("/.netlify/functions/cloud-stories", {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: payload ? JSON.stringify(payload) : undefined
+      });
+
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        data = {};
+      }
+
+      if (!res.ok) {
+        throw new Error(data.error || "Cloud stories error");
+      }
+
+      return data;
+    }
+
+    async function loadCloudStoriesForUser() {
+      const user = getCurrentIdentityUser();
+      if (!user) {
+        // fall back to local-only for guests
+        loadStoriesFromStorage();
+        return;
+      }
+
+      try {
+        const data = await callCloudStories("GET");
+        const stories = (data.stories || []).map(mapCloudStoryToLocal).filter(Boolean);
+
+        savedStories = stories;
+        saveStoriesToStorage();
+        renderSavedStories();
+        statusEl.textContent = "Loaded cloud stories ☁️";
+      } catch (e) {
+        console.error("Cloud load failed:", e);
+        statusEl.textContent = "Using local stories (cloud fetch failed)";
+        loadStoriesFromStorage();
+      }
+    }
+
+    // ---------- UI render functions ----------
 
     function renderSavedStories() {
       if (!savedStoriesList) return;
@@ -660,6 +655,62 @@
       });
     }
 
+    function renderPage() {
+      if (storyPages.length === 0) {
+        pageEl.innerHTML = "";
+        placeholderEl.style.display = "block";
+        pageInfo.textContent = "Page 0 of 0";
+        prevPageBtn.disabled = true;
+        nextPageBtn.disabled = true;
+        moralBox.style.display = "none";
+        saveStoryBtn.disabled = true;
+        if (copyStoryBtn) copyStoryBtn.disabled = true;
+        if (downloadStoryBtn) downloadStoryBtn.disabled = true;
+        return;
+      }
+
+      placeholderEl.style.display = "none";
+      pageEl.innerHTML = "";
+
+      const isFirstPage = currentPageIndex === 0;
+      const isLastPage = currentPageIndex === storyPages.length - 1;
+
+      if (isFirstPage && coverImageUrl) {
+        const img = document.createElement("img");
+        img.src = coverImageUrl;
+        img.alt = "Story cover illustration";
+        img.className = "page-image";
+        pageEl.appendChild(img);
+      }
+
+      const pageText = storyPages[currentPageIndex];
+      pageText.forEach(sentence => {
+        const p = document.createElement("p");
+        p.textContent = sentence;
+        pageEl.appendChild(p);
+      });
+
+      pageEl.classList.remove("page-fade");
+      void pageEl.offsetWidth;
+      pageEl.classList.add("page-fade");
+
+      pageInfo.textContent = `Page ${currentPageIndex + 1} of ${storyPages.length}`;
+      prevPageBtn.disabled = currentPageIndex === 0;
+      nextPageBtn.disabled = currentPageIndex === storyPages.length - 1;
+
+      if (isLastPage && currentMoralLine) {
+        moralText.textContent = currentMoralLine;
+        moralBox.style.display = "block";
+      } else {
+        moralBox.style.display = "none";
+      }
+
+      const hasStory = storyPages.length > 0;
+      saveStoryBtn.disabled = !hasStory;
+      if (copyStoryBtn) copyStoryBtn.disabled = !hasStory;
+      if (downloadStoryBtn) downloadStoryBtn.disabled = !hasStory;
+    }
+
     function loadStoryIntoViewer(storyId) {
       const story = savedStories.find(s => s.id === storyId);
       if (!story) return;
@@ -682,33 +733,26 @@
       statusEl.textContent = "Loaded saved story.";
     }
 
-    function saveCurrentStory() {
-      if (!storyPages.length) return;
+    // ---------- navigation & utilities ----------
 
-      const id = Date.now().toString();
-      const title =
-        lastChildName
-          ? `Story for ${lastChildName}`
-          : "Bedtime story";
+    prevPageBtn.addEventListener("click", () => {
+      if (currentPageIndex > 0) {
+        currentPageIndex--;
+        renderPage();
+      }
+    });
 
-      const storyObj = {
-        id,
-        title,
-        childName: lastChildName,
-        age: lastAge,
-        theme: lastTheme,
-        style: lastStyle,
-        length: lastLength,
-        createdAt: new Date().toISOString(),
-        pages: storyPages,
-        moral: currentMoralLine,
-        coverImageUrl
-      };
+    nextPageBtn.addEventListener("click", () => {
+      if (currentPageIndex < storyPages.length - 1) {
+        currentPageIndex++;
+        renderPage();
+      }
+    });
 
-      savedStories.unshift(storyObj); // newest on top
-      saveStoriesToStorage();
-      renderSavedStories();
-      statusEl.textContent = "Story saved locally ✔";
+    function sentenceRangeForLength(length) {
+      if (length === "Short") return "4–6 sentences";
+      if (length === "Long") return "14–20 sentences";
+      return "8–12 sentences";
     }
 
     function getFullStoryText() {
@@ -779,10 +823,6 @@
       statusEl.textContent = "Story downloaded as text file ✔";
     }
 
-    if (saveStoryBtn) {
-      saveStoryBtn.addEventListener("click", saveCurrentStory);
-    }
-
     if (copyStoryBtn) {
       copyStoryBtn.addEventListener("click", copyCurrentStory);
     }
@@ -790,6 +830,80 @@
     if (downloadStoryBtn) {
       downloadStoryBtn.addEventListener("click", downloadCurrentStory);
     }
+
+    // ---------- save story (local + cloud) ----------
+
+    async function saveCurrentStory() {
+      if (!storyPages.length) return;
+
+      // local representation
+      const localId = Date.now().toString();
+      const localTitle = lastChildName ? `Story for ${lastChildName}` : "Bedtime story";
+
+      let localStory = {
+        id: localId,
+        title: localTitle,
+        childName: lastChildName,
+        age: lastAge,
+        theme: lastTheme,
+        style: lastStyle,
+        length: lastLength,
+        createdAt: new Date().toISOString(),
+        pages: storyPages,
+        moral: currentMoralLine,
+        coverImageUrl
+      };
+
+      savedStories.unshift(localStory);
+      saveStoriesToStorage();
+      renderSavedStories();
+      statusEl.textContent = "Story saved locally ✔";
+
+      const user = getCurrentIdentityUser();
+      if (!user) {
+        return; // guest users only get local save
+      }
+
+      // cloud payload
+      const cloudPayload = {
+        title: localTitle,
+        childName: lastChildName,
+        age: lastAge,
+        theme: lastTheme,
+        style: lastStyle,
+        length: lastLength,
+        moral: currentMoralLine,
+        pages: storyPages,
+        coverImageUrl
+      };
+
+      try {
+        const data = await callCloudStories("POST", cloudPayload);
+        if (data.story) {
+          const cloudStory = mapCloudStoryToLocal(data.story);
+
+          // replace local copy with the cloud version (proper id + timestamps)
+          savedStories = [
+            cloudStory,
+            ...savedStories.filter(s => s.id !== localId)
+          ];
+          saveStoriesToStorage();
+          renderSavedStories();
+          statusEl.textContent = "Story saved in the cloud ☁️ and locally ✔";
+        }
+      } catch (e) {
+        console.error("Cloud save failed:", e);
+        statusEl.textContent = "Saved locally; cloud save failed: " + e.message;
+      }
+    }
+
+    if (saveStoryBtn) {
+      saveStoryBtn.addEventListener("click", () => {
+        saveCurrentStory();
+      });
+    }
+
+    // ---------- story generation & images ----------
 
     async function generateCoverIllustration(childName, age, theme, illustrationPrompts) {
       if (!illustrationPrompts || illustrationPrompts.length === 0) return;
@@ -846,7 +960,6 @@
         return;
       }
 
-      // remember metadata for saving
       lastChildName = childName;
       lastAge = age;
       lastTheme = theme;
@@ -914,7 +1027,6 @@ Rules:
 
         let storyRaw = data.choices?.[0]?.message?.content?.trim() || "No story generated.";
 
-        // Extract moral + illustration prompts
         let mainText = storyRaw;
         let moralLine = "";
         let illustrationPrompts = [];
@@ -956,12 +1068,10 @@ Rules:
         titleEl.textContent = "Bedtime story for " + childName;
         statusEl.textContent = "Story ready ✨ Cover will appear if image generation succeeds.";
 
-        // Generate a single cover illustration (non-blocking for reading)
         if (currentIllustrationPrompts.length > 0) {
           generateCoverIllustration(childName, age, theme, currentIllustrationPrompts);
         }
 
-        // enable actions now that we have a story
         saveStoryBtn.disabled = false;
         if (copyStoryBtn) copyStoryBtn.disabled = false;
         if (downloadStoryBtn) downloadStoryBtn.disabled = false;
@@ -980,29 +1090,30 @@ Rules:
       }
     }
 
+    // ---------- auth UI ----------
+
     function updateAuthUI(user) {
       if (!authBtn || !authStatus) return;
       if (user) {
         const name = user.user_metadata && user.user_metadata.full_name;
         authBtn.textContent = "Log out";
-        authStatus.textContent = `Signed in as ${name || user.email}. Stories are saved per account on this device.`;
+        authStatus.textContent = `Signed in as ${name || user.email}. Stories sync to the cloud.`;
       } else {
         authBtn.textContent = "Sign in";
-        authStatus.textContent = "Sign in to group saved stories under your account (on this device).";
+        authStatus.textContent = "Sign in to sync stories across devices.";
       }
     }
 
-    // Netlify Identity wiring
     if (typeof netlifyIdentity !== "undefined") {
       netlifyIdentity.on("init", user => {
         updateAuthUI(user);
-        loadStoriesFromStorage();
+        loadCloudStoriesForUser();
       });
 
       netlifyIdentity.on("login", user => {
         updateAuthUI(user);
         netlifyIdentity.close();
-        loadStoriesFromStorage();
+        loadCloudStoriesForUser();
       });
 
       netlifyIdentity.on("logout", () => {
@@ -1012,14 +1123,13 @@ Rules:
 
       netlifyIdentity.init();
     } else {
-      // no identity; still load guest stories
       loadStoriesFromStorage();
     }
 
     if (authBtn) {
       authBtn.addEventListener("click", () => {
         if (!netlifyIdentity) return;
-        const user = netlifyIdentity.currentUser();
+        const user = getCurrentIdentityUser();
         if (user) {
           netlifyIdentity.logout();
         } else {
@@ -1030,7 +1140,6 @@ Rules:
 
     btn.addEventListener("click", generateStory);
 
-    // Register service worker for PWA
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("service-worker.js").catch(console.error);
     }
