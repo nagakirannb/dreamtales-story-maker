@@ -139,44 +139,31 @@
       margin-top: 8px;
     }
 
+    /* MODERN MINIMAL STORYBOOK */
+
     .storybook {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background: #fdf7ec;
-  border-radius: 22px;
-  border: 1px solid #f4e3c2;
-  box-shadow:
-    0 18px 35px rgba(148, 131, 104, 0.35),
-    0 0 0 1px rgba(255, 255, 255, 0.7);
-  padding: 14px 16px 18px;
-  position: relative;
-  overflow: hidden;
-}
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background: #ffffff;
+      border-radius: 18px;
+      border: 1px solid #e5e7eb;
+      box-shadow:
+        0 18px 40px rgba(15, 23, 42, 0.12),
+        0 0 0 1px rgba(255, 255, 255, 0.9);
+      padding: 16px 16px 18px;
+      position: relative;
+      overflow: hidden;
+    }
 
-    /* subtle spine down the middle */
-.storybook::before {
-  content: "";
-  position: absolute;
-  top: 10px;
-  bottom: 10px;
-  left: 50%;
-  width: 3px;
-  transform: translateX(-50%);
-  background: linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.8),
-    rgba(0, 0, 0, 0.06),
-    rgba(255, 255, 255, 0.8)
-  );
-  opacity: 0.45;
-  pointer-events: none;
-}
-
-.storybook-header {
-  position: relative;
-  z-index: 1;
-}
+    .storybook-header {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
 
     .storybook-title {
       font-weight: 700;
@@ -188,62 +175,62 @@
       font-size: 11px;
       padding: 4px 8px;
       border-radius: 999px;
-      background: rgba(255, 214, 107, 0.3);
+      background: rgba(255, 214, 107, 0.2);
       color: #7a5a0a;
     }
 
     .storybook-body {
-  flex: 1;
-  overflow: hidden;
-  margin-top: 8px;
-  padding-right: 4px;
-  position: relative;
-}
+      flex: 1;
+      overflow: hidden;
+      margin-top: 8px;
+      padding-right: 4px;
+      position: relative;
+    }
 
-/* The "paper" for each page */
-.storybook-page {
-  width: 100%;
-  height: 100%;
-  overflow-y: auto;
-  line-height: 1.7;
-  font-size: 15px;
-  color: #3b2b1a;
-  white-space: pre-wrap;
-  background: radial-gradient(circle at top, #fffaf0 0, #fff4dd 45%, #ffeccd 100%);
-  border-radius: 16px;
-  padding: 14px 18px 16px;
-  box-shadow:
-    inset 3px 0 6px rgba(255, 255, 255, 0.7),
-    inset -3px 0 6px rgba(210, 180, 140, 0.35);
-}
+    /* The "page" itself */
+    .storybook-page {
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      line-height: 1.6;
+      font-size: 14.5px;
+      color: #111827;
+      white-space: pre-wrap;
+      background: #f9fafb;
+      border-radius: 14px;
+      padding: 14px 18px 16px;
+      box-shadow:
+        inset 0 0 0 1px rgba(229, 231, 235, 0.9),
+        0 0 0 1px rgba(255, 255, 255, 0.8);
+    }
 
     /* subtle fade/slide for page turns */
-.page-fade {
-  animation: pageFade 0.22s ease-out;
-}
+    .page-fade {
+      animation: pageFade 0.2s ease-out;
+    }
 
-@keyframes pageFade {
-  from {
-    opacity: 0;
-    transform: translateX(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
+    @keyframes pageFade {
+      from {
+        opacity: 0;
+        transform: translateX(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
 
     .page-image {
-  width: 100%;
-  max-height: 260px;
-  object-fit: cover;
-  border-radius: 16px;
-  margin-bottom: 12px;
-  background: #eee;
-  box-shadow:
-    0 8px 18px rgba(0, 0, 0, 0.18),
-    0 0 0 1px rgba(255, 255, 255, 0.8);
-}
+      width: 100%;
+      max-height: 260px;
+      object-fit: cover;
+      border-radius: 14px;
+      margin-bottom: 12px;
+      background: #e5e7eb;
+      box-shadow:
+        0 10px 24px rgba(15, 23, 42, 0.18),
+        0 0 0 1px rgba(255, 255, 255, 0.9);
+    }
 
     .storybook-placeholder {
       margin-top: 30px;
@@ -424,57 +411,56 @@
     const nextPageBtn = document.getElementById("nextPage");
     const pageInfo = document.getElementById("pageInfo");
 
-   function renderPage() {
-  if (storyPages.length === 0) {
-    pageEl.innerHTML = "";
-    placeholderEl.style.display = "block";
-    pageInfo.textContent = "Page 0 of 0";
-    prevPageBtn.disabled = true;
-    nextPageBtn.disabled = true;
-    moralBox.style.display = "none";
-    return;
-  }
+    function renderPage() {
+      if (storyPages.length === 0) {
+        pageEl.innerHTML = "";
+        placeholderEl.style.display = "block";
+        pageInfo.textContent = "Page 0 of 0";
+        prevPageBtn.disabled = true;
+        nextPageBtn.disabled = true;
+        moralBox.style.display = "none";
+        return;
+      }
 
-  placeholderEl.style.display = "none";
-  pageEl.innerHTML = "";
+      placeholderEl.style.display = "none";
+      pageEl.innerHTML = "";
 
-  const isFirstPage = currentPageIndex === 0;
-  const isLastPage = currentPageIndex === storyPages.length - 1;
+      const isFirstPage = currentPageIndex === 0;
+      const isLastPage = currentPageIndex === storyPages.length - 1;
 
-  // Cover image only on first page
-  if (isFirstPage && coverImageUrl) {
-    const img = document.createElement("img");
-    img.src = coverImageUrl;
-    img.alt = "Story cover illustration";
-    img.className = "page-image";
-    pageEl.appendChild(img);
-  }
+      // Cover image only on first page
+      if (isFirstPage && coverImageUrl) {
+        const img = document.createElement("img");
+        img.src = coverImageUrl;
+        img.alt = "Story cover illustration";
+        img.className = "page-image";
+        pageEl.appendChild(img);
+      }
 
-  const pageText = storyPages[currentPageIndex];
-  pageText.forEach(sentence => {
-    const p = document.createElement("p");
-    p.textContent = sentence;
-    pageEl.appendChild(p);
-  });
+      const pageText = storyPages[currentPageIndex];
+      pageText.forEach(sentence => {
+        const p = document.createElement("p");
+        p.textContent = sentence;
+        pageEl.appendChild(p);
+      });
 
-  // trigger small page-turn animation
-  pageEl.classList.remove("page-fade");
-  // force reflow to restart animation
-  void pageEl.offsetWidth;
-  pageEl.classList.add("page-fade");
+      // trigger small page-turn animation
+      pageEl.classList.remove("page-fade");
+      // force reflow to restart animation
+      void pageEl.offsetWidth;
+      pageEl.classList.add("page-fade");
 
-  pageInfo.textContent = `Page ${currentPageIndex + 1} of ${storyPages.length}`;
-  prevPageBtn.disabled = currentPageIndex === 0;
-  nextPageBtn.disabled = currentPageIndex === storyPages.length - 1;
+      pageInfo.textContent = `Page ${currentPageIndex + 1} of ${storyPages.length}`;
+      prevPageBtn.disabled = currentPageIndex === 0;
+      nextPageBtn.disabled = currentPageIndex === storyPages.length - 1;
 
-  if (isLastPage && currentMoralLine) {
-    moralText.textContent = currentMoralLine;
-    moralBox.style.display = "block";
-  } else {
-    moralBox.style.display = "none";
-  }
-}
-
+      if (isLastPage && currentMoralLine) {
+        moralText.textContent = currentMoralLine;
+        moralBox.style.display = "block";
+      } else {
+        moralBox.style.display = "none";
+      }
+    }
 
     prevPageBtn.addEventListener("click", () => {
       if (currentPageIndex > 0) {
@@ -508,28 +494,27 @@
       try {
         statusEl.textContent += " | Generating cover illustration…";
         const response = await fetch("/.netlify/functions/illustrations", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ prompt })
-});
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt })
+        });
 
-let dataText = await response.text();
-let data;
+        let dataText = await response.text();
+        let data;
 
-try {
-  data = dataText ? JSON.parse(dataText) : {};
-} catch (e) {
-  console.error("Non-JSON cover response:", dataText);
-  statusEl.textContent += " (cover image error: non-JSON response from server)";
-  return;
-}
+        try {
+          data = dataText ? JSON.parse(dataText) : {};
+        } catch (e) {
+          console.error("Non-JSON cover response:", dataText);
+          statusEl.textContent += " (cover image error: non-JSON response from server)";
+          return;
+        }
 
-if (!response.ok || !data.url) {
-  console.error("Cover illustration error:", data);
-  statusEl.textContent += " (cover image error: " + (data.error || "unknown") + ")";
-  return;
-}
-
+        if (!response.ok || !data.url) {
+          console.error("Cover illustration error:", data);
+          statusEl.textContent += " (cover image error: " + (data.error || "unknown") + ")";
+          return;
+        }
 
         coverImageUrl = data.url;
         renderPage();
@@ -672,15 +657,10 @@ Rules:
 
     btn.addEventListener("click", generateStory);
 
-    // Register service worker for PWA (you can comment this out while developing if caching is annoying)
+    // Register service worker for PWA
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("service-worker.js").catch(console.error);
     }
   </script>
 </body>
 </html>
-
-
-
-
-
