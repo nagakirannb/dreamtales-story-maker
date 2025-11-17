@@ -41,12 +41,17 @@ exports.handler = async (event, context) => {
       const data = await res.json();
 
       if (!res.ok) {
-        console.error("Supabase GET error:", data);
-        return {
-          statusCode: res.status,
-          body: JSON.stringify({ error: "Supabase fetch error" })
-        };
-      }
+  console.error("Supabase POST error:", data);
+  const message =
+    (Array.isArray(data) && data[0] && data[0].message) ||
+    data.message ||
+    JSON.stringify(data);
+  return {
+    statusCode: res.status,
+    body: JSON.stringify({ error: message || "Supabase insert error" })
+  };
+}
+
 
       return {
         statusCode: 200,
