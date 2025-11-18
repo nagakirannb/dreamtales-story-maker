@@ -1,67 +1,97 @@
 // netlify/functions/illustrations.js
-// Generates ONE cover illustration for a story
 
-exports.handler = async function (event, context) {
+exports.handler = async (event) => {
+  if (event.httpMethod !== "POST") {
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ error: "Method not allowed" }),
+    };
+  }
+
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+  if (!OPENAI_API_KEY) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "Missing OPENAI_API_KEY" }),
+    };
+  }
+
+  let body;
   try {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      console.error("OPENAI_API_KEY is NOT set in Netlify for illustrations");
-      return {
-        statusCode: 500,
-        body: JSON.stringify({
-          error: "Missing OPENAI_API_KEY on server (illustrations)."
-        })
-      };
-    }
+    body = JSON.parse(event.body || "{}");
+  } catch (e) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: "Invalid JSON body" }),
+    };
+  }
 
-    const body = JSON.parse(event.body || "{}");
-    const prompt = body.prompt;
+  const prompt = body.prompt;
+  if (!prompt || typeof prompt !== "string") {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: "Missing 'prompt' string" }),
+    };
+  }
 
-    if (!prompt || typeof prompt !== "string") {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: "No prompt provided for illustration." })
-      };
-    }
-
-    const response = await fetch("https://api.openai.com/v1/images/generations", {
+  try {
+    const res = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
         model: "gpt-image-1",
         prompt,
-        n: 1,
-        size: "1024x1536"
-      })
+        size: "1024x1024", // valid sizes: 1024x1024, 1024x1536, 1536x1024, auto
+      }),
     });
 
-    const data = await response.json();
+    const text = await res.text();
+    let data;
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch (e) {
+      console.error("Non-JSON image response:", text);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "Non-JSON response from OpenAI" }),
+      };
+    }
 
-    if (!response.ok) {
-  console.error("Image API error:", data);
-  return {
-    statusCode: response.status,
-    body: JSON.stringify({
-      error: data.error?.message || JSON.stringify(data) || "Image API error"
-    })
-  };
-}
+    if (!res.ok) {
+      console.error("OpenAI image error:", data);
+      // Surface actual error message so you see it in the UI
+      const msg =
+        data.error?.message ||
+        data.error ||
+        data.message ||
+        JSON.stringify(data);
+      return {
+        statusCode: res.status,
+        body: JSON.stringify({ error: msg }),
+      };
+    }
 
-    const url = data?.data?.[0]?.url || null;
+    const url = data.data && data.data[0] && data.data[0].url;
+    if (!url) {
+      console.error("No URL in image response:", data);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "No image URL returned" }),
+      };
+    }
 
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url })
+      body: JSON.stringify({ url }),
     };
   } catch (err) {
-    console.error("Illustrations function error:", err);
+    console.error("Image generation error:", err);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: err.message })
+      body: JSON.stringify({ error: err.message }),
     };
   }
 };
