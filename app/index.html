@@ -283,14 +283,14 @@
       max-width: 100%;
     }
 
-    /* Pager row: Prev | Page X of Y | Next */
+    /* Pager row: full width Prev | Page X of Y | Next */
+
     .pager-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
       width: 100%;
-      max-width: 260px;
       margin: 0 auto;
     }
 
@@ -310,7 +310,6 @@
       cursor: default;
     }
 
-    /* Keep "Page X of Y" on a single line */
     #pageInfo {
       white-space: nowrap;
       display: inline-block;
@@ -321,6 +320,7 @@
     }
 
     /* Actions row: Download PDF + Save */
+
     .actions-row {
       display: flex;
       flex-wrap: wrap;
@@ -800,7 +800,7 @@
       statusEl.textContent = "Loaded saved story.";
     }
 
-    // ---------- navigation & utilities ----------
+    // ---------- navigation & swipe ----------
 
     prevPageBtn.addEventListener("click", () => {
       if (currentPageIndex > 0) {
@@ -816,7 +816,6 @@
       }
     });
 
-    // Touch swipe handlers
     function handleTouchStart(e) {
       if (!storyPages.length) return;
       if (!e.touches || e.touches.length !== 1) return;
@@ -836,33 +835,25 @@
       const dy = touch.clientY - touchStartY;
       const dt = Date.now() - touchStartTime;
 
-      const minDistance = 40;      // pixels
-      const maxAngleRatio = 0.6;   // mostly horizontal
-      const maxDuration = 600;     // ms, quick swipe
+      const minDistance = 40;
+      const maxAngleRatio = 0.6;
+      const maxDuration = 600;
 
-      // Ignore long presses / slow drags
       if (dt > maxDuration) return;
-
-      // Not enough movement
       if (Math.abs(dx) < minDistance) return;
-
-      // If mostly vertical, ignore (allow scroll)
       if (Math.abs(dy) > Math.abs(dx) * maxAngleRatio) return;
 
-      // Swipe left → next page
       if (dx < 0 && currentPageIndex < storyPages.length - 1) {
         currentPageIndex++;
         renderPage();
       }
 
-      // Swipe right → prev page
       if (dx > 0 && currentPageIndex > 0) {
         currentPageIndex--;
         renderPage();
       }
     }
 
-    // Attach swipe listeners on the storybook body
     const storybookBodyEl = document.querySelector(".storybook-body");
     if (storybookBodyEl) {
       storybookBodyEl.addEventListener("touchstart", handleTouchStart, { passive: true });
@@ -875,74 +866,131 @@
       return "8–12 sentences";
     }
 
-    function getFullStoryText() {
-      if (!storyPages.length) return "";
+    // NEW: group sentences into pages depending on story length
+    function chunkSentencesIntoPages(sentences, length) {
+      if (!sentences || !sentences.length) return [];
+
+      let perPage;
+      if (length === "Short") perPage = sentences.length;     // usually 1 page
+      else if (length === "Long") perPage = 3;                // more pages
+      else perPage = 4;                                       // Medium
+
+      const pages = [];
+      for (let i = 0; i < sentences.length; i += perPage) {
+        pages.push(sentences.slice(i, i + perPage));
+      }
+      return pages;
+    }
+
+    // ---------- PDF helpers ----------
+
+    function buildStoryPieces() {
+      if (!storyPages.length) return null;
 
       const headerLines = [];
       if (lastChildName) headerLines.push(`Child: ${lastChildName}${lastAge ? " (age " + lastAge + ")" : ""}`);
       if (lastTheme || lastStyle) headerLines.push(`Theme: ${lastTheme || ""} | Style: ${lastStyle || ""}`);
       if (lastLength) headerLines.push(`Length: ${lastLength}`);
 
-      const storyLines = [];
-      storyPages.forEach(page => {
-        const text = page.join(" ").trim();
-        if (text) storyLines.push(text);
-      });
-
+      const paragraphs = storyPages.map(page => page.join(" ").trim()).filter(Boolean);
       const moralLine = currentMoralLine ? `Moral: ${currentMoralLine}` : "";
 
-      return [
-        (headerLines.join("\n") || "Bedtime story"),
-        "",
-        ...storyLines,
-        "",
-        moralLine
-      ].join("\n");
+      return { headerLines, paragraphs, moralLine };
     }
 
-    // Download PDF
     function downloadStoryPdf() {
       if (!storyPages.length) return;
-      const text = getFullStoryText();
-      if (!text) return;
 
-      try {
-        const { jsPDF } = window.jspdf || {};
-        if (!jsPDF) {
-          alert("PDF engine is still loading. Please try again.");
-          return;
-        }
+      const pieces = buildStoryPieces();
+      if (!pieces) return;
 
-        const doc = new jsPDF({
-          orientation: "p",
-          unit: "pt",
-          format: "a4"
-        });
-
-        const margin = 40;
-        const pageWidth = doc.internal.pageSize.getWidth() - margin * 2;
-        const lines = doc.splitTextToSize(text, pageWidth);
-
-        let y = margin;
-        const lineHeight = 16;
-        const pageHeight = doc.internal.pageSize.getHeight() - margin;
-
-        lines.forEach(line => {
-          if (y > pageHeight) {
-            doc.addPage();
-            y = margin;
-          }
-          doc.text(line, margin, y);
-          y += lineHeight;
-        });
-
-        const safeName = lastChildName ? `dreamtales_${lastChildName}.pdf` : "dreamtales_story.pdf";
-        doc.save(safeName);
-        statusEl.textContent = "Story downloaded as PDF ✔";
-      } catch (e) {
-        console.error("PDF download failed:", e);
-        statusEl.textContent = "Could not create PDF: " + e.message;
+      const { jsPDF } = window.jspdf || {};
+      if (!jsPDF) {
+        alert("PDF engine is still loading. Please try again.");
+        return;
       }
+
+      const doc = new jsPDF({
+        orientation: "p",
+        unit: "pt",
+        format: "a4"
+      });
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const marginX = 50;
+      const marginTop = 70;
+      const marginBottom = 50;
+      const usableWidth = pageWidth - marginX * 2;
+      const usableHeight = pageHeight - marginTop - marginBottom;
+
+      let y = marginTop;
+      let pageNumber = 1;
+
+      function drawHeader() {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(16);
+        doc.text("DreamTales – Bedtime Story Maker", marginX, y);
+        y += 22;
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(11);
+        pieces.headerLines.forEach(line => {
+          doc.text(line, marginX, y);
+          y += 16;
+        });
+
+        y += 8; // small gap before body
+      }
+
+      function drawFooter() {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.text(
+          `Page ${pageNumber}`,
+          pageWidth / 2,
+          pageHeight - marginBottom / 2,
+          { align: "center" }
+        );
+      }
+
+      drawHeader();
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+      const lineHeight = 16;
+
+      const bodyLines = [];
+      pieces.paragraphs.forEach((para, idx) => {
+        const wrapped = doc.splitTextToSize(para, usableWidth);
+        bodyLines.push(...wrapped);
+        if (idx < pieces.paragraphs.length - 1) bodyLines.push(""); // blank line between paragraphs
+      });
+
+      if (pieces.moralLine) {
+        bodyLines.push("");
+        bodyLines.push(pieces.moralLine);
+      }
+
+      bodyLines.forEach(line => {
+        if (y + lineHeight > marginTop + usableHeight) {
+          drawFooter();
+          doc.addPage();
+          pageNumber++;
+          y = marginTop;
+          drawHeader();
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(12);
+        }
+        doc.text(line, marginX, y);
+        y += line === "" ? lineHeight / 2 : lineHeight;
+      });
+
+      drawFooter();
+
+      const safeName = lastChildName ? `dreamtales_${lastChildName}.pdf` : "dreamtales_story.pdf";
+      doc.save(safeName);
+      statusEl.textContent = "Story downloaded as PDF ✔";
     }
 
     if (downloadPdfBtn) {
@@ -954,7 +1002,6 @@
     async function saveCurrentStory() {
       if (!storyPages.length) return;
 
-      // local representation
       const localId = Date.now().toString();
       const localTitle = lastChildName ? `Story for ${lastChildName}` : "Bedtime story";
 
@@ -979,10 +1026,9 @@
 
       const user = getCurrentIdentityUser();
       if (!user) {
-        return; // guest users only get local save
+        return;
       }
 
-      // cloud payload
       const cloudPayload = {
         title: localTitle,
         childName: lastChildName,
@@ -1000,7 +1046,6 @@
         if (data.story) {
           const cloudStory = mapCloudStoryToLocal(data.story);
 
-          // replace local copy with the cloud version (proper id + timestamps)
           savedStories = [
             cloudStory,
             ...savedStories.filter(s => s.id !== localId)
@@ -1197,7 +1242,9 @@ Rules:
           .map(s => s.trim())
           .filter(s => s.length > 0);
 
-        storyPages = sentences.map(s => [s]);
+        // NEW: group sentences into multi-sentence pages
+        storyPages = chunkSentencesIntoPages(sentences, length);
+
         currentMoralLine = moralLine;
         currentIllustrationPrompts = illustrationPrompts;
         currentPageIndex = 0;
