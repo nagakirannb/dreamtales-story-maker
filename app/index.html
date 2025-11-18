@@ -306,6 +306,12 @@
       cursor: default;
     }
 
+    /* Keep "Page X of Y" on a single line */
+    #pageInfo {
+      white-space: nowrap;
+      display: inline-block;
+    }
+
     .saved-stories {
       margin-top: 16px;
       background: rgba(255, 255, 255, 0.92);
@@ -480,6 +486,11 @@
     let currentMoralLine = "";
     let currentIllustrationPrompts = [];
     let coverImageUrl = null;
+
+    // swipe tracking
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartTime = 0;
 
     // metadata for the current story
     let lastChildName = "";
@@ -749,6 +760,59 @@
       }
     });
 
+    // Touch swipe handlers
+    function handleTouchStart(e) {
+      if (!storyPages.length) return;
+      if (!e.touches || e.touches.length !== 1) return;
+
+      const touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      touchStartTime = Date.now();
+    }
+
+    function handleTouchEnd(e) {
+      if (!storyPages.length) return;
+      const touch = e.changedTouches && e.changedTouches[0];
+      if (!touch) return;
+
+      const dx = touch.clientX - touchStartX;
+      const dy = touch.clientY - touchStartY;
+      const dt = Date.now() - touchStartTime;
+
+      const minDistance = 40;      // pixels
+      const maxAngleRatio = 0.6;   // mostly horizontal
+      const maxDuration = 600;     // ms, quick swipe
+
+      // Ignore long presses / slow drags
+      if (dt > maxDuration) return;
+
+      // Not enough movement
+      if (Math.abs(dx) < minDistance) return;
+
+      // If mostly vertical, ignore (allow scroll)
+      if (Math.abs(dy) > Math.abs(dx) * maxAngleRatio) return;
+
+      // Swipe left → next page
+      if (dx < 0 && currentPageIndex < storyPages.length - 1) {
+        currentPageIndex++;
+        renderPage();
+      }
+
+      // Swipe right → prev page
+      if (dx > 0 && currentPageIndex > 0) {
+        currentPageIndex--;
+        renderPage();
+      }
+    }
+
+    // Attach swipe listeners on the storybook body
+    const storybookBodyEl = document.querySelector(".storybook-body");
+    if (storybookBodyEl) {
+      storybookBodyEl.addEventListener("touchstart", handleTouchStart, { passive: true });
+      storybookBodyEl.addEventListener("touchend", handleTouchEnd, { passive: true });
+    }
+
     function sentenceRangeForLength(length) {
       if (length === "Short") return "4–6 sentences";
       if (length === "Long") return "14–20 sentences";
@@ -905,73 +969,69 @@
 
     // ---------- story generation & images ----------
 
-   async function generateCoverIllustration(childName, age, theme, illustrationPrompts) {
-  if (!illustrationPrompts || illustrationPrompts.length === 0) return;
+    async function generateCoverIllustration(childName, age, theme, illustrationPrompts) {
+      if (!illustrationPrompts || illustrationPrompts.length === 0) return;
 
-  const firstPrompt = illustrationPrompts[0];
-  const styleHint =
-    "children's book illustration, soft watercolor, warm pastel colors, cute and gentle, simple background, no text, no words, 4:5 aspect ratio";
+      const firstPrompt = illustrationPrompts[0];
+      const styleHint =
+        "children's book illustration, soft watercolor, warm pastel colors, cute and gentle, simple background, no text, no words, 4:5 aspect ratio";
 
-  const prompt = `${firstPrompt}. ${styleHint}. Story about ${childName}, a ${age}-year-old child learning about ${theme}.`;
+      const prompt = `${firstPrompt}. ${styleHint}. Story about ${childName}, a ${age}-year-old child learning about ${theme}.`;
 
-  try {
-    statusEl.textContent += " | Generating cover illustration…";
+      try {
+        statusEl.textContent += " | Generating cover illustration…";
 
-    const response = await fetch("/.netlify/functions/illustrations", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt })
-    });
+        const response = await fetch("/.netlify/functions/illustrations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt })
+        });
 
-    const dataText = await response.text();
-    let data = {};
-    try {
-      data = dataText ? JSON.parse(dataText) : {};
-    } catch (e) {
-      console.error("Non-JSON cover response:", dataText);
-      statusEl.textContent += " (cover image error: non-JSON response from server)";
-      return;
-    }
+        const dataText = await response.text();
+        let data = {};
+        try {
+          data = dataText ? JSON.parse(dataText) : {};
+        } catch (e) {
+          console.error("Non-JSON cover response:", dataText);
+          statusEl.textContent += " (cover image error: non-JSON response from server)";
+          return;
+        }
 
-    // If the function failed, show whatever error we can find
-    if (!response.ok) {
-      const msg =
-        data.error ||
-        data.message ||
-        (typeof dataText === "string" ? dataText.slice(0, 120) + "…" : "unknown error");
-      console.error("Cover illustration error (not ok):", data);
-      statusEl.textContent += " (cover image error: " + msg + ")";
-      return;
-    }
+        if (!response.ok) {
+          const msg =
+            data.error ||
+            data.message ||
+            (typeof dataText === "string" ? dataText.slice(0, 120) + "…" : "unknown error");
+          console.error("Cover illustration error (not ok):", data);
+          statusEl.textContent += " (cover image error: " + msg + ")";
+          return;
+        }
 
-    // Try to find a usable image URL in multiple shapes
-    let url = data.url;
+        let url = data.url;
 
-    // Case 1: function returned raw OpenAI response with data[0].b64_json
-    if (!url && data.data && Array.isArray(data.data) && data.data[0]) {
-      const item = data.data[0];
-      if (item.url) {
-        url = item.url;
-      } else if (item.b64_json) {
-        url = `data:image/png;base64,${item.b64_json}`;
+        if (!url && data.data && Array.isArray(data.data) && data.data[0]) {
+          const item = data.data[0];
+          if (item.url) {
+            url = item.url;
+          } else if (item.b64_json) {
+            url = `data:image/png;base64,${item.b64_json}`;
+          }
+        }
+
+        if (!url) {
+          console.error("Cover illustration: no usable URL in response:", data);
+          statusEl.textContent += " (cover image error: no usable image in response)";
+          return;
+        }
+
+        coverImageUrl = url;
+        renderPage();
+        statusEl.textContent += " | Cover ready 🌟";
+      } catch (err) {
+        console.error("Cover illustration exception:", err);
+        statusEl.textContent += " (error loading cover image: " + err.message + ")";
       }
     }
-
-    if (!url) {
-      console.error("Cover illustration: no usable URL in response:", data);
-      statusEl.textContent += " (cover image error: no usable image in response)";
-      return;
-    }
-
-    coverImageUrl = url;
-    renderPage();
-    statusEl.textContent += " | Cover ready 🌟";
-  } catch (err) {
-    console.error("Cover illustration exception:", err);
-    statusEl.textContent += " (error loading cover image: " + err.message + ")";
-  }
-}
-
 
     async function generateStory() {
       const childName = document.getElementById("childName").value.trim();
@@ -1171,4 +1231,3 @@ Rules:
   </script>
 </body>
 </html>
-
