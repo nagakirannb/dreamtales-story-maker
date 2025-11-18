@@ -1,5 +1,5 @@
 // netlify/functions/illustrations.js
-// Generates a single cover illustration using OpenAI and returns a usable image URL.
+// Super-simple: call OpenAI image API and always return { url: "data:image/png;base64,..." }
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
@@ -48,7 +48,7 @@ exports.handler = async function (event, context) {
         model: "gpt-image-1",
         prompt,
         n: 1,
-        size: "1024x1024" // don't send response_format – default already includes b64_json
+        size: "1024x1024"   // don't set response_format; default includes b64_json
       })
     });
 
@@ -64,30 +64,24 @@ exports.handler = async function (event, context) {
       };
     }
 
-    console.log("OpenAI image OK, raw data:", JSON.stringify(data).slice(0, 500) + "...");
+    console.log(
+      "OpenAI image OK, first item keys:",
+      data && data.data && data.data[0] ? Object.keys(data.data[0]) : "no item"
+    );
 
-    let url = null;
+    const first = data && data.data && Array.isArray(data.data) ? data.data[0] : null;
 
-    // If OpenAI ever returns a direct URL
-    if (data.data && Array.isArray(data.data) && data.data[0]) {
-      const item = data.data[0];
-      if (item.url) {
-        url = item.url;
-      } else if (item.b64_json) {
-        // Convert base64 into a data URL so the browser can show it
-        url = `data:image/png;base64,${item.b64_json}`;
-      }
-    }
-
-    if (!url) {
-      console.error("Could not find usable image field in response:", data);
+    if (!first || !first.b64_json) {
+      console.error("No b64_json in OpenAI response:", data);
       return {
         statusCode: 500,
-        body: JSON.stringify({ error: "No usable image returned from OpenAI" })
+        body: JSON.stringify({ error: "No b64_json returned from OpenAI" })
       };
     }
 
-    // ✅ This is what the frontend expects
+    const url = `data:image/png;base64,${first.b64_json}`;
+
+    // ✅ This is all the frontend expects:
     return {
       statusCode: 200,
       body: JSON.stringify({ url })
