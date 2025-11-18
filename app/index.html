@@ -295,15 +295,17 @@
     }
 
     .pager-btn {
-      border-radius: 999px;
-      border: 1px solid #ccd2f5;
-      background: #ffffff;
-      padding: 4px 10px;
-      cursor: pointer;
-      font-size: 11px;
-      white-space: nowrap;
-      flex: 0 0 auto;
-    }
+           width: auto;                 /* override global 100% width */
+           border-radius: 999px;
+           border: 1px solid #ccd2f5;
+           background: #ffffff;
+          padding: 4px 10px;
+          cursor: pointer;
+          font-size: 11px;
+          white-space: nowrap;
+          flex: 0 0 auto;
+}
+
 
     .pager-btn:disabled {
       opacity: 0.4;
@@ -330,11 +332,13 @@
     }
 
     .primary-btn,
-    .secondary-btn {
-      flex: 1 1 160px;
-      margin-top: 0;
-      font-size: 13px;
-    }
+.secondary-btn {
+  width: auto;                 /* also override global button width */
+  flex: 1 1 160px;
+  margin-top: 0;
+  font-size: 13px;
+}
+
 
     .primary-btn {
       background: var(--midnight);
@@ -1330,3 +1334,4 @@ Rules:
   </script>
 </body>
 </html>
+
