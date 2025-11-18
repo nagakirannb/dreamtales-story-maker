@@ -1,93 +1,102 @@
 // netlify/functions/illustrations.js
+// Generates a single cover illustration using OpenAI and returns a usable image URL.
 
-exports.handler = async (event) => {
-  const json = (statusCode, obj) => ({
-    statusCode,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(obj),
-  });
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
+exports.handler = async function (event, context) {
   if (event.httpMethod !== "POST") {
-    return json(405, { error: "Method not allowed" });
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ error: "Method not allowed" })
+    };
   }
 
-  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   if (!OPENAI_API_KEY) {
     console.error("Missing OPENAI_API_KEY env var");
-    return json(500, { error: "Missing OPENAI_API_KEY" });
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "Server is missing OpenAI API key" })
+    };
   }
 
   let body;
   try {
     body = JSON.parse(event.body || "{}");
   } catch (e) {
-    console.error("Invalid JSON body:", e);
-    return json(400, { error: "Invalid JSON body" });
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: "Invalid JSON body" })
+    };
   }
 
   const prompt = body.prompt;
   if (!prompt || typeof prompt !== "string") {
-    return json(400, { error: "Missing 'prompt' string" });
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: "Missing 'prompt' string" })
+    };
   }
 
   try {
-    const res = await fetch("https://api.openai.com/v1/images/generations", {
+    const openaiRes = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        Authorization: `Bearer ${OPENAI_API_KEY}`
       },
       body: JSON.stringify({
         model: "gpt-image-1",
         prompt,
-        size: "1024x1024",
-        // IMPORTANT: no response_format here, your API doesn't accept it
-      }),
+        n: 1,
+        size: "1024x1024" // don't send response_format – default already includes b64_json
+      })
     });
 
-    const text = await res.text();
-    let data;
-    try {
-      data = text ? JSON.parse(text) : {};
-    } catch (e) {
-      console.error("Non-JSON response from OpenAI:", text);
-      return json(500, { error: "Non-JSON response from OpenAI", raw: text });
-    }
+    const data = await openaiRes.json().catch(() => ({}));
 
-    if (!res.ok) {
+    if (!openaiRes.ok) {
       console.error("OpenAI image error:", data);
-      const msg =
-        data.error?.message ||
-        data.error ||
-        data.message ||
-        JSON.stringify(data);
-      return json(res.status, { error: msg });
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          error: data.error?.message || data.error || "OpenAI image API error"
+        })
+      };
     }
 
-    // Handle both shapes: URL or base64
-    const item = data.data && data.data[0];
-    if (!item) {
-      console.error("No data[0] in OpenAI image response:", data);
-      return json(500, { error: "No image returned from OpenAI" });
-    }
+    console.log("OpenAI image OK, raw data:", JSON.stringify(data).slice(0, 500) + "...");
 
-    let url = item.url;
-    if (!url && item.b64_json) {
-      // Convert base64 PNG to a data URL for the browser
-      url = `data:image/png;base64,${item.b64_json}`;
+    let url = null;
+
+    // If OpenAI ever returns a direct URL
+    if (data.data && Array.isArray(data.data) && data.data[0]) {
+      const item = data.data[0];
+      if (item.url) {
+        url = item.url;
+      } else if (item.b64_json) {
+        // Convert base64 into a data URL so the browser can show it
+        url = `data:image/png;base64,${item.b64_json}`;
+      }
     }
 
     if (!url) {
-      console.error("No image URL or base64 in response:", data);
-      return json(500, { error: "No usable image in OpenAI response" });
+      console.error("Could not find usable image field in response:", data);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "No usable image returned from OpenAI" })
+      };
     }
 
-    return json(200, { url });
+    // ✅ This is what the frontend expects
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ url })
+    };
   } catch (err) {
-    console.error("Image generation exception:", err);
-    return json(500, {
-      error: err.message || "Unexpected error",
-      stack: String(err.stack || ""),
-    });
+    console.error("Illustrations function exception:", err);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: err.message || "Unexpected server error" })
+    };
   }
 };
