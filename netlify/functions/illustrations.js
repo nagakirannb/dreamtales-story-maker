@@ -1,14 +1,12 @@
 // netlify/functions/illustrations.js
 
 exports.handler = async (event) => {
-  // Always respond with JSON
   const json = (statusCode, obj) => ({
     statusCode,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(obj),
   });
 
-  // Only allow POST
   if (event.httpMethod !== "POST") {
     return json(405, { error: "Method not allowed" });
   }
@@ -33,7 +31,6 @@ exports.handler = async (event) => {
   }
 
   try {
-    // Call OpenAI image endpoint
     const res = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
       headers: {
@@ -43,7 +40,9 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         model: "gpt-image-1",
         prompt,
-        size: "1024x1024", // valid values: 1024x1024, 1024x1536, 1536x1024, "auto"
+        size: "1024x1024",
+        // IMPORTANT: ask for base64 output, then convert to data URL
+        response_format: "b64_json",
       }),
     });
 
@@ -66,15 +65,23 @@ exports.handler = async (event) => {
       return json(res.status, { error: msg });
     }
 
-    const url = data.data && data.data[0] && data.data[0].url;
-    if (!url) {
-      console.error("No image URL in OpenAI response:", data);
-      return json(500, { error: "No image URL returned from OpenAI" });
+    const item = data.data && data.data[0];
+    const b64 = item && item.b64_json;
+
+    if (!b64) {
+      console.error("No base64 image in OpenAI response:", data);
+      return json(500, { error: "No image data returned from OpenAI" });
     }
+
+    // Convert base64 to a data URL that the browser <img> can use directly
+    const url = `data:image/png;base64,${b64}`;
 
     return json(200, { url });
   } catch (err) {
     console.error("Image generation exception:", err);
-    return json(500, { error: err.message || "Unexpected error", stack: String(err.stack || "") });
+    return json(500, {
+      error: err.message || "Unexpected error",
+      stack: String(err.stack || ""),
+    });
   }
 };
