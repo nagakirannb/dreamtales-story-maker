@@ -905,48 +905,73 @@
 
     // ---------- story generation & images ----------
 
-    async function generateCoverIllustration(childName, age, theme, illustrationPrompts) {
-      if (!illustrationPrompts || illustrationPrompts.length === 0) return;
+   async function generateCoverIllustration(childName, age, theme, illustrationPrompts) {
+  if (!illustrationPrompts || illustrationPrompts.length === 0) return;
 
-      const firstPrompt = illustrationPrompts[0];
-      const styleHint =
-        "children's book illustration, soft watercolor, warm pastel colors, cute and gentle, simple background, no text, no words, 4:5 aspect ratio";
+  const firstPrompt = illustrationPrompts[0];
+  const styleHint =
+    "children's book illustration, soft watercolor, warm pastel colors, cute and gentle, simple background, no text, no words, 4:5 aspect ratio";
 
-      const prompt = `${firstPrompt}. ${styleHint}. Story about ${childName}, a ${age}-year-old child learning about ${theme}.`;
+  const prompt = `${firstPrompt}. ${styleHint}. Story about ${childName}, a ${age}-year-old child learning about ${theme}.`;
 
-      try {
-        statusEl.textContent += " | Generating cover illustration…";
-        const response = await fetch("/.netlify/functions/illustrations", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt })
-        });
+  try {
+    statusEl.textContent += " | Generating cover illustration…";
 
-        let dataText = await response.text();
-        let data;
+    const response = await fetch("/.netlify/functions/illustrations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt })
+    });
 
-        try {
-          data = dataText ? JSON.parse(dataText) : {};
-        } catch (e) {
-          console.error("Non-JSON cover response:", dataText);
-          statusEl.textContent += " (cover image error: non-JSON response from server)";
-          return;
-        }
+    const dataText = await response.text();
+    let data = {};
+    try {
+      data = dataText ? JSON.parse(dataText) : {};
+    } catch (e) {
+      console.error("Non-JSON cover response:", dataText);
+      statusEl.textContent += " (cover image error: non-JSON response from server)";
+      return;
+    }
 
-        if (!response.ok || !data.url) {
-          console.error("Cover illustration error:", data);
-          statusEl.textContent += " (cover image error: " + (data.error || "unknown") + ")";
-          return;
-        }
+    // If the function failed, show whatever error we can find
+    if (!response.ok) {
+      const msg =
+        data.error ||
+        data.message ||
+        (typeof dataText === "string" ? dataText.slice(0, 120) + "…" : "unknown error");
+      console.error("Cover illustration error (not ok):", data);
+      statusEl.textContent += " (cover image error: " + msg + ")";
+      return;
+    }
 
-        coverImageUrl = data.url;
-        renderPage();
-        statusEl.textContent += " | Cover ready 🌟";
-      } catch (err) {
-        console.error("Cover illustration error:", err);
-        statusEl.textContent += " (error loading cover image: " + err.message + ")";
+    // Try to find a usable image URL in multiple shapes
+    let url = data.url;
+
+    // Case 1: function returned raw OpenAI response with data[0].b64_json
+    if (!url && data.data && Array.isArray(data.data) && data.data[0]) {
+      const item = data.data[0];
+      if (item.url) {
+        url = item.url;
+      } else if (item.b64_json) {
+        url = `data:image/png;base64,${item.b64_json}`;
       }
     }
+
+    if (!url) {
+      console.error("Cover illustration: no usable URL in response:", data);
+      statusEl.textContent += " (cover image error: no usable image in response)";
+      return;
+    }
+
+    coverImageUrl = url;
+    renderPage();
+    statusEl.textContent += " | Cover ready 🌟";
+  } catch (err) {
+    console.error("Cover illustration exception:", err);
+    statusEl.textContent += " (error loading cover image: " + err.message + ")";
+  }
+}
+
 
     async function generateStory() {
       const childName = document.getElementById("childName").value.trim();
@@ -1146,3 +1171,4 @@ Rules:
   </script>
 </body>
 </html>
+
