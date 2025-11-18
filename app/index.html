@@ -267,10 +267,8 @@
       border-top: 1px dashed #d0d6f0;
       padding-top: 8px;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
+      flex-direction: column;
       gap: 8px;
-      flex-wrap: wrap;
     }
 
     .badge {
@@ -282,23 +280,29 @@
       background: rgba(11, 29, 59, 0.06);
       font-size: 11px;
       color: #444;
+      max-width: 100%;
     }
 
-    .pager-controls {
-      display: inline-flex;
+    /* Pager row: Prev | Page X of Y | Next */
+    .pager-row {
+      display: flex;
       align-items: center;
-      gap: 6px;
-      font-size: 11px;
+      justify-content: space-between;
+      gap: 8px;
+      width: 100%;
+      max-width: 260px;
+      margin: 0 auto;
     }
 
     .pager-btn {
       border-radius: 999px;
       border: 1px solid #ccd2f5;
       background: #ffffff;
-      padding: 4px 8px;
+      padding: 4px 10px;
       cursor: pointer;
       font-size: 11px;
       white-space: nowrap;
+      flex: 0 0 auto;
     }
 
     .pager-btn:disabled {
@@ -310,6 +314,56 @@
     #pageInfo {
       white-space: nowrap;
       display: inline-block;
+      text-align: center;
+      flex: 1 1 auto;
+      font-weight: 500;
+      color: #4b5563;
+    }
+
+    /* Actions row: Download PDF + Save */
+    .actions-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+      width: 100%;
+    }
+
+    .primary-btn,
+    .secondary-btn {
+      flex: 1 1 160px;
+      margin-top: 0;
+      font-size: 13px;
+    }
+
+    .primary-btn {
+      background: var(--midnight);
+      color: #ffffff;
+      border: none;
+    }
+
+    .primary-btn:hover:not(:disabled) {
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
+    }
+
+    .primary-btn:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+
+    .secondary-btn {
+      background: #ffffff;
+      color: #111827;
+      border: 1px solid #d1d5db;
+    }
+
+    .secondary-btn:hover:not(:disabled) {
+      box-shadow: 0 3px 10px rgba(55, 65, 81, 0.18);
+    }
+
+    .secondary-btn:disabled {
+      opacity: 0.6;
+      cursor: default;
     }
 
     .saved-stories {
@@ -445,15 +499,18 @@
 
         <div class="storybook-footer">
           <span class="badge">Tip: Turn your phone sideways for a wider “storybook” feel.</span>
-          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
-            <button id="copyStoryBtn" class="pager-btn" disabled>Copy</button>
-            <button id="downloadStoryBtn" class="pager-btn" disabled>Download .txt</button>
-            <button id="saveStoryBtn" class="pager-btn" disabled>Save story</button>
-            <div class="pager-controls">
-              <button id="prevPage" class="pager-btn" disabled>‹ Prev</button>
-              <span id="pageInfo">Page 0 of 0</span>
-              <button id="nextPage" class="pager-btn" disabled>Next ›</button>
-            </div>
+
+          <!-- Pager row -->
+          <div class="pager-row">
+            <button id="prevPage" class="pager-btn" disabled>‹ Prev</button>
+            <span id="pageInfo">Page 0 of 0</span>
+            <button id="nextPage" class="pager-btn" disabled>Next ›</button>
+          </div>
+
+          <!-- Actions row -->
+          <div class="actions-row">
+            <button id="downloadPdfBtn" class="primary-btn" disabled>Download PDF</button>
+            <button id="saveStoryBtn" class="secondary-btn" disabled>Save story</button>
           </div>
         </div>
       </div>
@@ -479,6 +536,8 @@
 
   <!-- Netlify Identity widget -->
   <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <!-- jsPDF for PDF download -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
   <script>
     let storyPages = [];
@@ -517,8 +576,7 @@
     const authStatus = document.getElementById("authStatus");
     const saveStoryBtn = document.getElementById("saveStoryBtn");
     const savedStoriesList = document.getElementById("savedStoriesList");
-    const copyStoryBtn = document.getElementById("copyStoryBtn");
-    const downloadStoryBtn = document.getElementById("downloadStoryBtn");
+    const downloadPdfBtn = document.getElementById("downloadPdfBtn");
 
     // ---------- helpers for auth + storage ----------
 
@@ -675,8 +733,7 @@
         nextPageBtn.disabled = true;
         moralBox.style.display = "none";
         saveStoryBtn.disabled = true;
-        if (copyStoryBtn) copyStoryBtn.disabled = true;
-        if (downloadStoryBtn) downloadStoryBtn.disabled = true;
+        if (downloadPdfBtn) downloadPdfBtn.disabled = true;
         return;
       }
 
@@ -718,8 +775,7 @@
 
       const hasStory = storyPages.length > 0;
       saveStoryBtn.disabled = !hasStory;
-      if (copyStoryBtn) copyStoryBtn.disabled = !hasStory;
-      if (downloadStoryBtn) downloadStoryBtn.disabled = !hasStory;
+      if (downloadPdfBtn) downloadPdfBtn.disabled = !hasStory;
     }
 
     function loadStoryIntoViewer(storyId) {
@@ -844,55 +900,53 @@
       ].join("\n");
     }
 
-    async function copyCurrentStory() {
+    // Download PDF
+    function downloadStoryPdf() {
       if (!storyPages.length) return;
       const text = getFullStoryText();
       if (!text) return;
 
       try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(text);
-        } else {
-          const textarea = document.createElement("textarea");
-          textarea.value = text;
-          textarea.style.position = "fixed";
-          textarea.style.left = "-9999px";
-          document.body.appendChild(textarea);
-          textarea.select();
-          document.execCommand("copy");
-          document.body.removeChild(textarea);
+        const { jsPDF } = window.jspdf || {};
+        if (!jsPDF) {
+          alert("PDF engine is still loading. Please try again.");
+          return;
         }
-        statusEl.textContent = "Story copied to clipboard ✔";
+
+        const doc = new jsPDF({
+          orientation: "p",
+          unit: "pt",
+          format: "a4"
+        });
+
+        const margin = 40;
+        const pageWidth = doc.internal.pageSize.getWidth() - margin * 2;
+        const lines = doc.splitTextToSize(text, pageWidth);
+
+        let y = margin;
+        const lineHeight = 16;
+        const pageHeight = doc.internal.pageSize.getHeight() - margin;
+
+        lines.forEach(line => {
+          if (y > pageHeight) {
+            doc.addPage();
+            y = margin;
+          }
+          doc.text(line, margin, y);
+          y += lineHeight;
+        });
+
+        const safeName = lastChildName ? `dreamtales_${lastChildName}.pdf` : "dreamtales_story.pdf";
+        doc.save(safeName);
+        statusEl.textContent = "Story downloaded as PDF ✔";
       } catch (e) {
-        console.error("Copy failed:", e);
-        statusEl.textContent = "Could not copy story: " + e.message;
+        console.error("PDF download failed:", e);
+        statusEl.textContent = "Could not create PDF: " + e.message;
       }
     }
 
-    function downloadCurrentStory() {
-      if (!storyPages.length) return;
-      const text = getFullStoryText();
-      if (!text) return;
-
-      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      const safeName = lastChildName ? `dreamtales_${lastChildName}.txt` : "dreamtales_story.txt";
-      a.href = url;
-      a.download = safeName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      statusEl.textContent = "Story downloaded as text file ✔";
-    }
-
-    if (copyStoryBtn) {
-      copyStoryBtn.addEventListener("click", copyCurrentStory);
-    }
-
-    if (downloadStoryBtn) {
-      downloadStoryBtn.addEventListener("click", downloadCurrentStory);
+    if (downloadPdfBtn) {
+      downloadPdfBtn.addEventListener("click", downloadStoryPdf);
     }
 
     // ---------- save story (local + cloud) ----------
@@ -1053,8 +1107,7 @@
 
       btn.disabled = true;
       saveStoryBtn.disabled = true;
-      if (copyStoryBtn) copyStoryBtn.disabled = true;
-      if (downloadStoryBtn) downloadStoryBtn.disabled = true;
+      if (downloadPdfBtn) downloadPdfBtn.disabled = true;
 
       statusEl.textContent = "Creating a magical story...";
       titleEl.textContent = "Writing a story for " + childName + "…";
@@ -1158,8 +1211,7 @@ Rules:
         }
 
         saveStoryBtn.disabled = false;
-        if (copyStoryBtn) copyStoryBtn.disabled = false;
-        if (downloadStoryBtn) downloadStoryBtn.disabled = false;
+        if (downloadPdfBtn) downloadPdfBtn.disabled = false;
       } catch (err) {
         console.error(err);
         statusEl.textContent = "Something went wrong: " + err.message;
