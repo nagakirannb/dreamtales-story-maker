@@ -41,8 +41,7 @@ exports.handler = async (event) => {
         model: "gpt-image-1",
         prompt,
         size: "1024x1024",
-        // IMPORTANT: ask for base64 output, then convert to data URL
-        response_format: "b64_json",
+        // IMPORTANT: no response_format here, your API doesn't accept it
       }),
     });
 
@@ -65,16 +64,23 @@ exports.handler = async (event) => {
       return json(res.status, { error: msg });
     }
 
+    // Handle both shapes: URL or base64
     const item = data.data && data.data[0];
-    const b64 = item && item.b64_json;
-
-    if (!b64) {
-      console.error("No base64 image in OpenAI response:", data);
-      return json(500, { error: "No image data returned from OpenAI" });
+    if (!item) {
+      console.error("No data[0] in OpenAI image response:", data);
+      return json(500, { error: "No image returned from OpenAI" });
     }
 
-    // Convert base64 to a data URL that the browser <img> can use directly
-    const url = `data:image/png;base64,${b64}`;
+    let url = item.url;
+    if (!url && item.b64_json) {
+      // Convert base64 PNG to a data URL for the browser
+      url = `data:image/png;base64,${item.b64_json}`;
+    }
+
+    if (!url) {
+      console.error("No image URL or base64 in response:", data);
+      return json(500, { error: "No usable image in OpenAI response" });
+    }
 
     return json(200, { url });
   } catch (err) {
