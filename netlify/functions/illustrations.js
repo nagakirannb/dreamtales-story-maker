@@ -1,21 +1,39 @@
 // netlify/functions/illustrations.js
-// Super-simple: call OpenAI image API and always return { url: "data:image/png;base64,..." }
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+// Netlify function to generate a single cover image using OpenAI gpt-image-1
+// Returns: { url: "data:image/png;base64,..." } or { url: "https://..." }
 
-exports.handler = async function (event, context) {
-  if (event.httpMethod !== "POST") {
+exports.handler = async (event, context) => {
+  // CORS preflight
+  if (event.httpMethod === "OPTIONS") {
     return {
-      statusCode: 405,
-      body: JSON.stringify({ error: "Method not allowed" })
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+      },
+      body: "ok",
     };
   }
 
-  if (!OPENAI_API_KEY) {
-    console.error("Missing OPENAI_API_KEY env var");
+  if (event.httpMethod !== "POST") {
+    return {
+      statusCode: 405,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+      },
+      body: JSON.stringify({ error: "Method not allowed" }),
+    };
+  }
+
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    console.error("Missing OPENAI_API_KEY in environment");
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Server is missing OpenAI API key" })
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify({ error: "Server missing OpenAI API key" }),
     };
   }
 
@@ -25,7 +43,8 @@ exports.handler = async function (event, context) {
   } catch (e) {
     return {
       statusCode: 400,
-      body: JSON.stringify({ error: "Invalid JSON body" })
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify({ error: "Invalid JSON body" }),
     };
   }
 
@@ -33,64 +52,80 @@ exports.handler = async function (event, context) {
   if (!prompt || typeof prompt !== "string") {
     return {
       statusCode: 400,
-      body: JSON.stringify({ error: "Missing 'prompt' string" })
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify({ error: "Missing 'prompt' string" }),
     };
   }
 
   try {
-    const openaiRes = await fetch("https://api.openai.com/v1/images/generations", {
+    // Call OpenAI images API using plain fetch
+    const response = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENAI_API_KEY}`
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: "gpt-image-1",
         prompt,
         n: 1,
-        size: "1024x1024"   // don't set response_format; default includes b64_json
-      })
+        size: "1024x1024",
+        // no response_format here – we accept default (base64)
+      }),
     });
 
-    const data = await openaiRes.json().catch(() => ({}));
+    const data = await response.json().catch(() => ({}));
 
-    if (!openaiRes.ok) {
+    if (!response.ok) {
       console.error("OpenAI image error:", data);
       return {
         statusCode: 500,
+        headers: { "Access-Control-Allow-Origin": "*" },
         body: JSON.stringify({
-          error: data.error?.message || data.error || "OpenAI image API error"
-        })
+          error: data?.error?.message || data?.error || "OpenAI image API error",
+        }),
       };
     }
 
-    console.log(
-      "OpenAI image OK, first item keys:",
-      data && data.data && data.data[0] ? Object.keys(data.data[0]) : "no item"
-    );
-
-    const first = data && data.data && Array.isArray(data.data) ? data.data[0] : null;
-
-    if (!first || !first.b64_json) {
-      console.error("No b64_json in OpenAI response:", data);
+    const first = data?.data?.[0];
+    if (!first) {
+      console.error("No data[0] in OpenAI response:", data);
       return {
         statusCode: 500,
-        body: JSON.stringify({ error: "No b64_json returned from OpenAI" })
+        headers: { "Access-Control-Allow-Origin": "*" },
+        body: JSON.stringify({ error: "No image returned from OpenAI" }),
       };
     }
 
-    const url = `data:image/png;base64,${first.b64_json}`;
+    // Prefer URL if present, otherwise build data URL from base64
+    let url = first.url || null;
+    if (!url && first.b64_json) {
+      url = `data:image/png;base64,${first.b64_json}`;
+    }
 
-    // ✅ This is all the frontend expects:
+    if (!url) {
+      console.error("No url or b64_json in OpenAI response:", data);
+      return {
+        statusCode: 500,
+        headers: { "Access-Control-Allow-Origin": "*" },
+        body: JSON.stringify({ error: "No usable image in OpenAI response" }),
+      };
+    }
+
     return {
       statusCode: 200,
-      body: JSON.stringify({ url })
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
+      body: JSON.stringify({ url }),
     };
   } catch (err) {
-    console.error("Illustrations function exception:", err);
+    console.error("Illustrations function caught error:", err);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: err.message || "Unexpected server error" })
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify({ error: err.message || "Unexpected error" }),
     };
   }
 };
