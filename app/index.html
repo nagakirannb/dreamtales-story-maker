@@ -1128,23 +1128,33 @@ if ("speechSynthesis" in window) {
 }
 
 
-    function stopStoryAudio() {
+        function stopStoryAudio() {
       if (!("speechSynthesis" in window)) return;
       window.speechSynthesis.cancel();
       isSpeaking = false;
       if (listenStoryBtn) {
-  listenStoryBtn.addEventListener("click", () => {
-    if (!storyPages.length) return;
-    if (isSpeaking) {
-      stopStoryAudio();
-    } else {
-      speakStory().catch(err => {
-        console.error("Error starting audio:", err);
-        statusEl.textContent = "Audio could not start. Try again.";
+        listenStoryBtn.textContent = "🔊 Listen";
+      }
+    }
+
+    // Attach click handler for the Listen button
+    if (listenStoryBtn) {
+      listenStoryBtn.addEventListener("click", () => {
+        if (!storyPages.length) return;
+
+        if (isSpeaking) {
+          // If already speaking, stop
+          stopStoryAudio();
+        } else {
+          // Start speaking
+          speakStory().catch(err => {
+            console.error("Error starting audio:", err);
+            statusEl.textContent = "Audio could not start. Try again.";
+          });
+        }
       });
     }
-  });
-}
+
 
 
     // ---------- save story (local + cloud) ----------
@@ -1429,4 +1439,5 @@ Rules:
   </script>
 </body>
 </html>
+
 
