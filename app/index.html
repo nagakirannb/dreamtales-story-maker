@@ -409,7 +409,8 @@
       gap: 2px;
       min-width: 140px;
     }
-        .saved-story-header {
+
+    .saved-story-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -438,7 +439,8 @@
       font-size: 11px;
       color: #6b7280;
     }
-        .feedback {
+
+    .feedback {
       margin-top: 16px;
       background: #ffffff;
       border-radius: 14px;
@@ -470,7 +472,6 @@
       resize: vertical;
       min-height: 70px;
     }
-
   </style>
 </head>
 <body>
@@ -518,6 +519,10 @@
         <select id="language">
           <option value="English" selected>English</option>
           <option value="Hindi">Hindi</option>
+          <option value="Tamil">Tamil</option>
+          <option value="Telugu">Telugu</option>
+          <option value="Kannada">Kannada</option>
+          <option value="Malayalam">Malayalam</option>
           <option value="Spanish">Spanish</option>
           <option value="French">French</option>
           <option value="German">German</option>
@@ -594,7 +599,8 @@
         <div class="status">No stories saved yet.</div>
       </div>
     </div>
-        <form
+
+    <form
       name="dreamtales-feedback"
       method="POST"
       data-netlify="true"
@@ -687,20 +693,18 @@
     const listenStoryBtn = document.getElementById("listenStoryBtn");
 
     // ---- Speech synthesis voice handling ----
-let ttsVoices = [];
+    let ttsVoices = [];
 
-function loadVoices() {
-  if (!("speechSynthesis" in window)) return;
-  ttsVoices = window.speechSynthesis.getVoices();
-}
+    function loadVoices() {
+      if (!("speechSynthesis" in window)) return;
+      ttsVoices = window.speechSynthesis.getVoices();
+    }
 
-if ("speechSynthesis" in window) {
-  loadVoices();
-  window.speechSynthesis.addEventListener("voiceschanged", loadVoices);
-}
+    if ("speechSynthesis" in window) {
+      loadVoices();
+      window.speechSynthesis.addEventListener("voiceschanged", loadVoices);
+    }
 
-    
-    
     // ---------- helpers for auth + storage ----------
 
     function getCurrentIdentityUser() {
@@ -1160,6 +1164,14 @@ if ("speechSynthesis" in window) {
       switch (language) {
         case "Hindi":
           return "hi-IN";
+        case "Tamil":
+          return "ta-IN";
+        case "Telugu":
+          return "te-IN";
+        case "Kannada":
+          return "kn-IN";
+        case "Malayalam":
+          return "ml-IN";
         case "Spanish":
           return "es-ES";
         case "French":
@@ -1189,60 +1201,67 @@ if ("speechSynthesis" in window) {
     }
 
     async function speakStory() {
-  if (!("speechSynthesis" in window)) {
-    statusEl.textContent = "Audio is not supported in this browser. Try Chrome or Edge.";
-    return;
-  }
+      if (!("speechSynthesis" in window)) {
+        statusEl.textContent = "Audio is not supported in this browser. Try Chrome or Edge.";
+        return;
+      }
 
-  const text = getStoryTextForAudio();
-  if (!text) return;
+      const text = getStoryTextForAudio();
+      if (!text) return;
 
-  const langCode = getLanguageCode(lastLanguage || "English");
-  window.speechSynthesis.cancel();
+      const langCode = getLanguageCode(lastLanguage || "English");
+      window.speechSynthesis.cancel();
 
-  // If voices aren’t loaded yet, wait a moment and try again
-  if (!ttsVoices.length) {
-    await new Promise(resolve => setTimeout(resolve, 250));
-    ttsVoices = window.speechSynthesis.getVoices();
-  }
+      // If voices aren’t loaded yet, wait a moment and try again
+      if (!ttsVoices.length) {
+        await new Promise(resolve => setTimeout(resolve, 250));
+        ttsVoices = window.speechSynthesis.getVoices();
+      }
 
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = langCode;
-  utterance.rate = 0.95;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = langCode;
+      utterance.rate = 0.95;
 
-  // Try to pick a voice that matches the language (e.g., "es" for Spanish)
-  if (ttsVoices && ttsVoices.length) {
-    const base = langCode.split("-")[0]; // "es" from "es-ES"
-    const match =
-      ttsVoices.find(v => v.lang && v.lang.startsWith(langCode)) ||
-      ttsVoices.find(v => v.lang && v.lang.startsWith(base));
+      // Try to pick a voice that matches the language (e.g., "es" for Spanish, "ta" for Tamil)
+      let chosenVoice = null;
+      if (ttsVoices && ttsVoices.length) {
+        const base = langCode.split("-")[0]; // "es" from "es-ES"
+        chosenVoice =
+          ttsVoices.find(v => v.lang && v.lang.startsWith(langCode)) ||
+          ttsVoices.find(v => v.lang && v.lang.startsWith(base));
 
-    if (match) {
-      utterance.voice = match;
+        // Fallback: if no matching language voice is found, just use the first available voice
+        if (!chosenVoice) {
+          chosenVoice = ttsVoices[0];
+          statusEl.textContent =
+            "No native voice for this language on this device – using a fallback voice.";
+        }
+      }
+
+      if (chosenVoice) {
+        utterance.voice = chosenVoice;
+      }
+
+      utterance.onstart = () => {
+        isSpeaking = true;
+        if (listenStoryBtn) listenStoryBtn.textContent = "⏹ Stop audio";
+      };
+      utterance.onend = () => {
+        isSpeaking = false;
+        if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
+      };
+      utterance.onerror = (e) => {
+        console.error("Speech synthesis error:", e);
+        isSpeaking = false;
+        if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
+        statusEl.textContent = "Audio could not start. Try again or switch browser/device.";
+      };
+
+      currentUtterance = utterance;
+      window.speechSynthesis.speak(utterance);
     }
-  }
 
-  utterance.onstart = () => {
-    isSpeaking = true;
-    if (listenStoryBtn) listenStoryBtn.textContent = "⏹ Stop audio";
-  };
-  utterance.onend = () => {
-    isSpeaking = false;
-    if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
-  };
-  utterance.onerror = (e) => {
-    console.error("Speech synthesis error:", e);
-    isSpeaking = false;
-    if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
-    statusEl.textContent = "Audio could not start. Try again or switch browser/device.";
-  };
-
-  currentUtterance = utterance;
-  window.speechSynthesis.speak(utterance);
-}
-
-
-        function stopStoryAudio() {
+    function stopStoryAudio() {
       if (!("speechSynthesis" in window)) return;
       window.speechSynthesis.cancel();
       isSpeaking = false;
@@ -1268,8 +1287,6 @@ if ("speechSynthesis" in window) {
         }
       });
     }
-
-
 
     // ---------- save story (local + cloud) ----------
 
@@ -1387,7 +1404,7 @@ if ("speechSynthesis" in window) {
       coverImageUrl = null;
       renderPage();
 
-            const range = sentenceRangeForLength(length);
+      const range = sentenceRangeForLength(length);
       // Tiny random tag so the model has a reason to vary outputs
       const variationTag = Math.random().toString(36).slice(2, 8);
 
@@ -1412,7 +1429,6 @@ Rules:
 8. After the moral, add a new section titled 'Illustration Prompts:' and list 4 bullet-point prompts describing key scenes for an illustrator or image model.
 9. Internally, use this variation tag to make each story slightly different, even when inputs are the same: ${variationTag}. Do NOT mention or show this tag in the story.
 `.trim();
-
 
       try {
         const response = await fetch("/.netlify/functions/story", {
@@ -1557,7 +1573,3 @@ Rules:
   </script>
 </body>
 </html>
-
-
-
-
