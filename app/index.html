@@ -463,6 +463,15 @@
           <option>Animal Friends</option>
         </select>
 
+<label>Language</label>
+<select id="language">
+  <option value="English" selected>English</option>
+  <option value="Hindi">Hindi</option>
+  <option value="Spanish">Spanish</option>
+  <option value="French">French</option>
+  <option value="German">German</option>
+</select>
+        
         <label>Story Length</label>
         <select id="length">
           <option>Short</option>
@@ -561,6 +570,7 @@
     let lastTheme = "";
     let lastStyle = "";
     let lastLength = "";
+    let lastLanguage = "English";
 
     // saved stories (local representation)
     let savedStories = [];
@@ -581,6 +591,8 @@
     const saveStoryBtn = document.getElementById("saveStoryBtn");
     const savedStoriesList = document.getElementById("savedStoriesList");
     const downloadPdfBtn = document.getElementById("downloadPdfBtn");
+    const languageSelect = document.getElementById("language");
+
 
     // ---------- helpers for auth + storage ----------
 
@@ -715,7 +727,7 @@
         metaSpan.className = "saved-story-meta";
         const date = story.createdAt ? new Date(story.createdAt) : null;
         const dateStr = date ? date.toLocaleDateString() : "";
-        metaSpan.textContent = `${story.childName || "Child"} • ${story.theme || ""} • ${dateStr}`;
+        metaSpan.textContent = `${story.childName || "Child"} • ${story.theme || ""}` + (story.language ? ` • ${story.language}` : "") + (dateStr ? ` • ${dateStr}` : "");
 
         item.appendChild(titleSpan);
         item.appendChild(metaSpan);
@@ -895,6 +907,8 @@
       if (lastChildName) headerLines.push(`Child: ${lastChildName}${lastAge ? " (age " + lastAge + ")" : ""}`);
       if (lastTheme || lastStyle) headerLines.push(`Theme: ${lastTheme || ""} | Style: ${lastStyle || ""}`);
       if (lastLength) headerLines.push(`Length: ${lastLength}`);
+      if (lastLanguage) headerLines.push(`Language: ${lastLanguage}`);
+
 
       const paragraphs = storyPages.map(page => page.join(" ").trim()).filter(Boolean);
       const moralLine = currentMoralLine ? `Moral: ${currentMoralLine}` : "";
@@ -1020,6 +1034,7 @@
         createdAt: new Date().toISOString(),
         pages: storyPages,
         moral: currentMoralLine,
+        language: lastLanguage,
         coverImageUrl
       };
 
@@ -1142,6 +1157,8 @@
       const theme = document.getElementById("theme").value;
       const style = document.getElementById("style").value;
       const length = document.getElementById("length").value;
+      const language = languageSelect ? languageSelect.value : "English";
+
 
       if (!childName || !age) {
         alert("Please enter the child's name and age.");
@@ -1153,6 +1170,7 @@
       lastTheme = theme;
       lastStyle = style;
       lastLength = length;
+      lastLanguage = language;
 
       btn.disabled = true;
       saveStoryBtn.disabled = true;
@@ -1161,6 +1179,8 @@
       statusEl.textContent = "Creating a magical story...";
       titleEl.textContent = "Writing a story for " + childName + "…";
       pillEl.textContent = theme + " • " + style;
+      pillEl.textContent = `${theme} • ${style} • ${language}`;
+
       storyPages = [];
       currentPageIndex = 0;
       currentMoralLine = "";
@@ -1170,7 +1190,7 @@
 
       const range = sentenceRangeForLength(length);
 
-      const userContent = `
+const userContent = `
 Create a bedtime story for a child.
 
 Child's Name: ${childName}
@@ -1178,16 +1198,18 @@ Age: ${age}
 Theme (moral): ${theme}
 Style: ${style}
 Length: ${length}
+Target language: ${language}
 
 Rules:
-1. Use simple, age-appropriate language for a child of this age.
-2. Include the child’s name 4–6 times naturally.
-3. Keep the tone calm, gentle, and encouraging, suitable for bedtime.
-4. Add 1–2 cute or magical elements (e.g., friendly animals, stars, moon, talking toys).
-5. Write the main story in ${range}, as one continuous block of text. Do not label the sentences.
-6. At the end, write one clear sentence starting exactly with 'Moral:' that explains the lesson of the story.
-7. After the moral, add a new section titled 'Illustration Prompts:' and list 4 bullet-point prompts describing key scenes for an illustrator or image model.
-      `.trim();
+1. Write the ENTIRE story in the target language: ${language}. Do NOT mix languages, except where specified.
+2. Use simple, age-appropriate language for a child of this age.
+3. Include the child’s name 4–6 times naturally.
+4. Keep the tone calm, gentle, and encouraging, suitable for bedtime.
+5. Add 1–2 cute or magical elements (e.g., friendly animals, stars, moon, talking toys).
+6. Write the main story in ${range}, as one continuous block of text. Do not label the sentences.
+7. At the end, write one clear sentence that explains the lesson of the story. This sentence MUST start with the English label 'Moral:' followed by a space, and then the moral sentence in the target language.
+8. After the moral, add a new section titled 'Illustration Prompts:' and list 4 bullet-point prompts describing key scenes for an illustrator or image model.
+`.trim();
 
       try {
         const response = await fetch("/.netlify/functions/story", {
@@ -1336,5 +1358,6 @@ Rules:
   </script>
 </body>
 </html>
+
 
 
