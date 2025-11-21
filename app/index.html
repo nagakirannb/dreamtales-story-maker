@@ -295,17 +295,16 @@
     }
 
     .pager-btn {
-           width: auto;                 /* override global 100% width */
-           border-radius: 999px;
-           border: 1px solid #ccd2f5;
-           background: #ffffff;
-          padding: 4px 10px;
-          cursor: pointer;
-          font-size: 11px;
-          white-space: nowrap;
-          flex: 0 0 auto;
-}
-
+      width: auto;
+      border-radius: 999px;
+      border: 1px solid #ccd2f5;
+      background: #ffffff;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-size: 11px;
+      white-space: nowrap;
+      flex: 0 0 auto;
+    }
 
     .pager-btn:disabled {
       opacity: 0.4;
@@ -321,7 +320,7 @@
       color: #4b5563;
     }
 
-    /* Actions row: Download PDF + Save */
+    /* Actions row: Listen + Download PDF + Save */
 
     .actions-row {
       display: flex;
@@ -332,13 +331,12 @@
     }
 
     .primary-btn,
-.secondary-btn {
-  width: auto;                 /* also override global button width */
-  flex: 1 1 160px;
-  margin-top: 0;
-  font-size: 13px;
-}
-
+    .secondary-btn {
+      width: auto;
+      flex: 1 1 160px;
+      margin-top: 0;
+      font-size: 13px;
+    }
 
     .primary-btn {
       background: var(--midnight);
@@ -463,15 +461,15 @@
           <option>Animal Friends</option>
         </select>
 
-<label>Language</label>
-<select id="language">
-  <option value="English" selected>English</option>
-  <option value="Hindi">Hindi</option>
-  <option value="Spanish">Spanish</option>
-  <option value="French">French</option>
-  <option value="German">German</option>
-</select>
-        
+        <label>Language</label>
+        <select id="language">
+          <option value="English" selected>English</option>
+          <option value="Hindi">Hindi</option>
+          <option value="Spanish">Spanish</option>
+          <option value="French">French</option>
+          <option value="German">German</option>
+        </select>
+
         <label>Story Length</label>
         <select id="length">
           <option>Short</option>
@@ -522,6 +520,7 @@
 
           <!-- Actions row -->
           <div class="actions-row">
+            <button id="listenStoryBtn" class="secondary-btn" disabled>🔊 Listen</button>
             <button id="downloadPdfBtn" class="primary-btn" disabled>Download PDF</button>
             <button id="saveStoryBtn" class="secondary-btn" disabled>Save story</button>
           </div>
@@ -564,6 +563,10 @@
     let touchStartY = 0;
     let touchStartTime = 0;
 
+    // audio state
+    let isSpeaking = false;
+    let currentUtterance = null;
+
     // metadata for the current story
     let lastChildName = "";
     let lastAge = "";
@@ -592,7 +595,7 @@
     const savedStoriesList = document.getElementById("savedStoriesList");
     const downloadPdfBtn = document.getElementById("downloadPdfBtn");
     const languageSelect = document.getElementById("language");
-
+    const listenStoryBtn = document.getElementById("listenStoryBtn");
 
     // ---------- helpers for auth + storage ----------
 
@@ -727,7 +730,10 @@
         metaSpan.className = "saved-story-meta";
         const date = story.createdAt ? new Date(story.createdAt) : null;
         const dateStr = date ? date.toLocaleDateString() : "";
-        metaSpan.textContent = `${story.childName || "Child"} • ${story.theme || ""}` + (story.language ? ` • ${story.language}` : "") + (dateStr ? ` • ${dateStr}` : "");
+        metaSpan.textContent =
+          `${story.childName || "Child"} • ${story.theme || ""}` +
+          (story.language ? ` • ${story.language}` : "") +
+          (dateStr ? ` • ${dateStr}` : "");
 
         item.appendChild(titleSpan);
         item.appendChild(metaSpan);
@@ -750,6 +756,7 @@
         moralBox.style.display = "none";
         saveStoryBtn.disabled = true;
         if (downloadPdfBtn) downloadPdfBtn.disabled = true;
+        if (listenStoryBtn) listenStoryBtn.disabled = true;
         return;
       }
 
@@ -792,6 +799,7 @@
       const hasStory = storyPages.length > 0;
       saveStoryBtn.disabled = !hasStory;
       if (downloadPdfBtn) downloadPdfBtn.disabled = !hasStory;
+      if (listenStoryBtn) listenStoryBtn.disabled = !hasStory;
     }
 
     function loadStoryIntoViewer(storyId) {
@@ -882,14 +890,14 @@
       return "8–12 sentences";
     }
 
-    // NEW: group sentences into pages depending on story length
+    // Group sentences into pages depending on story length
     function chunkSentencesIntoPages(sentences, length) {
       if (!sentences || !sentences.length) return [];
 
       let perPage;
-      if (length === "Short") perPage = sentences.length;     // usually 1 page
-      else if (length === "Long") perPage = 3;                // more pages
-      else perPage = 4;                                       // Medium
+      if (length === "Short") perPage = sentences.length;   // usually 1 page
+      else if (length === "Long") perPage = 3;              // more pages
+      else perPage = 4;                                     // Medium
 
       const pages = [];
       for (let i = 0; i < sentences.length; i += perPage) {
@@ -909,8 +917,10 @@
       if (lastLength) headerLines.push(`Length: ${lastLength}`);
       if (lastLanguage) headerLines.push(`Language: ${lastLanguage}`);
 
+      const paragraphs = storyPages
+        .map(page => page.join(" ").trim())
+        .filter(Boolean);
 
-      const paragraphs = storyPages.map(page => page.join(" ").trim()).filter(Boolean);
       const moralLine = currentMoralLine ? `Moral: ${currentMoralLine}` : "";
 
       return { headerLines, paragraphs, moralLine };
@@ -958,7 +968,7 @@
           y += 16;
         });
 
-        y += 8; // small gap before body
+        y += 8; // gap
       }
 
       function drawFooter() {
@@ -982,7 +992,7 @@
       pieces.paragraphs.forEach((para, idx) => {
         const wrapped = doc.splitTextToSize(para, usableWidth);
         bodyLines.push(...wrapped);
-        if (idx < pieces.paragraphs.length - 1) bodyLines.push(""); // blank line between paragraphs
+        if (idx < pieces.paragraphs.length - 1) bodyLines.push("");
       });
 
       if (pieces.moralLine) {
@@ -1013,6 +1023,92 @@
 
     if (downloadPdfBtn) {
       downloadPdfBtn.addEventListener("click", downloadStoryPdf);
+    }
+
+    // ---------- AUDIO (browser SpeechSynthesis) ----------
+
+    function getLanguageCode(language) {
+      switch (language) {
+        case "Hindi":
+          return "hi-IN";
+        case "Spanish":
+          return "es-ES";
+        case "French":
+          return "fr-FR";
+        case "German":
+          return "de-DE";
+        default:
+          return "en-US";
+      }
+    }
+
+    function getStoryTextForAudio() {
+      if (!storyPages.length) return "";
+
+      const storyLines = [];
+      storyPages.forEach(page => {
+        const text = page.join(" ").trim();
+        if (text) storyLines.push(text);
+      });
+
+      if (currentMoralLine) {
+        storyLines.push("");
+        storyLines.push(currentMoralLine);
+      }
+
+      return storyLines.join("\n");
+    }
+
+    function speakStory() {
+      if (!("speechSynthesis" in window)) {
+        statusEl.textContent = "Audio is not supported in this browser. Try Chrome or Edge.";
+        return;
+      }
+
+      const text = getStoryTextForAudio();
+      if (!text) return;
+
+      const langCode = getLanguageCode(lastLanguage || "English");
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = langCode;
+      utterance.rate = 0.95;
+
+      utterance.onstart = () => {
+        isSpeaking = true;
+        if (listenStoryBtn) listenStoryBtn.textContent = "⏹ Stop audio";
+      };
+      utterance.onend = () => {
+        isSpeaking = false;
+        if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
+      };
+      utterance.onerror = () => {
+        isSpeaking = false;
+        if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
+        statusEl.textContent = "There was a problem with audio playback.";
+      };
+
+      currentUtterance = utterance;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function stopStoryAudio() {
+      if (!("speechSynthesis" in window)) return;
+      window.speechSynthesis.cancel();
+      isSpeaking = false;
+      if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
+    }
+
+    if (listenStoryBtn) {
+      listenStoryBtn.addEventListener("click", () => {
+        if (!storyPages.length) return;
+        if (isSpeaking) {
+          stopStoryAudio();
+        } else {
+          speakStory();
+        }
+      });
     }
 
     // ---------- save story (local + cloud) ----------
@@ -1085,70 +1181,11 @@
       });
     }
 
-    // ---------- story generation & images ----------
+    // ---------- story generation (images parked) ----------
 
     async function generateCoverIllustration(childName, age, theme, illustrationPrompts) {
-      if (!illustrationPrompts || illustrationPrompts.length === 0) return;
-
-      const firstPrompt = illustrationPrompts[0];
-      const styleHint =
-        "children's book illustration, soft watercolor, warm pastel colors, cute and gentle, simple background, no text, no words, 4:5 aspect ratio";
-
-      const prompt = `${firstPrompt}. ${styleHint}. Story about ${childName}, a ${age}-year-old child learning about ${theme}.`;
-
-      try {
-        statusEl.textContent += " | Generating cover illustration…";
-
-        const response = await fetch("/.netlify/functions/illustrations", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt })
-        });
-
-        const dataText = await response.text();
-        let data = {};
-        try {
-          data = dataText ? JSON.parse(dataText) : {};
-        } catch (e) {
-          console.error("Non-JSON cover response:", dataText);
-          statusEl.textContent += " (cover image error: non-JSON response from server)";
-          return;
-        }
-
-        if (!response.ok) {
-          const msg =
-            data.error ||
-            data.message ||
-            (typeof dataText === "string" ? dataText.slice(0, 120) + "…" : "unknown error");
-          console.error("Cover illustration error (not ok):", data);
-          statusEl.textContent += " (cover image error: " + msg + ")";
-          return;
-        }
-
-        let url = data.url;
-
-        if (!url && data.data && Array.isArray(data.data) && data.data[0]) {
-          const item = data.data[0];
-          if (item.url) {
-            url = item.url;
-          } else if (item.b64_json) {
-            url = `data:image/png;base64,${item.b64_json}`;
-          }
-        }
-
-        if (!url) {
-          console.error("Cover illustration: no usable URL in response:", data);
-          statusEl.textContent += " (cover image error: no usable image in response)";
-          return;
-        }
-
-        coverImageUrl = url;
-        renderPage();
-        statusEl.textContent += " | Cover ready 🌟";
-      } catch (err) {
-        console.error("Cover illustration exception:", err);
-        statusEl.textContent += " (error loading cover image: " + err.message + ")";
-      }
+      // parked for now – not called
+      return;
     }
 
     async function generateStory() {
@@ -1159,11 +1196,13 @@
       const length = document.getElementById("length").value;
       const language = languageSelect ? languageSelect.value : "English";
 
-
       if (!childName || !age) {
         alert("Please enter the child's name and age.");
         return;
       }
+
+      // stop any playing audio when generating a new story
+      stopStoryAudio();
 
       lastChildName = childName;
       lastAge = age;
@@ -1175,10 +1214,10 @@
       btn.disabled = true;
       saveStoryBtn.disabled = true;
       if (downloadPdfBtn) downloadPdfBtn.disabled = true;
+      if (listenStoryBtn) listenStoryBtn.disabled = true;
 
       statusEl.textContent = "Creating a magical story...";
       titleEl.textContent = "Writing a story for " + childName + "…";
-      pillEl.textContent = theme + " • " + style;
       pillEl.textContent = `${theme} • ${style} • ${language}`;
 
       storyPages = [];
@@ -1190,7 +1229,7 @@
 
       const range = sentenceRangeForLength(length);
 
-const userContent = `
+      const userContent = `
 Create a bedtime story for a child.
 
 Child's Name: ${childName}
@@ -1268,7 +1307,7 @@ Rules:
           .map(s => s.trim())
           .filter(s => s.length > 0);
 
-        // NEW: group sentences into multi-sentence pages
+        // group sentences into multi-sentence pages
         storyPages = chunkSentencesIntoPages(sentences, length);
 
         currentMoralLine = moralLine;
@@ -1277,16 +1316,12 @@ Rules:
         renderPage();
 
         titleEl.textContent = "Bedtime story for " + childName;
-        statusEl.textContent = "Story ready ✨ (Illustrated covers coming soon – current version focuses on text and PDFs.)";
-
-// TEMP: images parked for MVP
-// if (currentIllustrationPrompts.length > 0) {
-//   generateCoverIllustration(childName, age, theme, currentIllustrationPrompts);
-// }
-
+        statusEl.textContent =
+          "Story ready ✨ (Illustrated covers coming soon – current version focuses on text, audio, and PDFs.)";
 
         saveStoryBtn.disabled = false;
         if (downloadPdfBtn) downloadPdfBtn.disabled = false;
+        if (listenStoryBtn) listenStoryBtn.disabled = false;
       } catch (err) {
         console.error(err);
         statusEl.textContent = "Something went wrong: " + err.message;
@@ -1358,6 +1393,3 @@ Rules:
   </script>
 </body>
 </html>
-
-
-
