@@ -1255,11 +1255,13 @@ Rules:
         renderPage();
 
         titleEl.textContent = "Bedtime story for " + childName;
-        statusEl.textContent = "Story ready ✨ Cover will appear if image generation succeeds.";
+        statusEl.textContent = "Story ready ✨ (Illustrated covers coming soon – current version focuses on text and PDFs.)";
 
-        if (currentIllustrationPrompts.length > 0) {
-          generateCoverIllustration(childName, age, theme, currentIllustrationPrompts);
-        }
+// TEMP: images parked for MVP
+// if (currentIllustrationPrompts.length > 0) {
+//   generateCoverIllustration(childName, age, theme, currentIllustrationPrompts);
+// }
+
 
         saveStoryBtn.disabled = false;
         if (downloadPdfBtn) downloadPdfBtn.disabled = false;
@@ -1334,4 +1336,5 @@ Rules:
   </script>
 </body>
 </html>
+
 
