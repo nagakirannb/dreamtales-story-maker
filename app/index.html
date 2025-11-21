@@ -409,6 +409,26 @@
       gap: 2px;
       min-width: 140px;
     }
+        .saved-story-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .delete-story-btn {
+      border: none;
+      background: transparent;
+      color: #b91c1c;
+      cursor: pointer;
+      font-size: 12px;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .delete-story-btn:hover {
+      text-decoration: underline;
+    }
 
     .saved-story-item span:first-child {
       font-weight: 600;
@@ -418,6 +438,39 @@
       font-size: 11px;
       color: #6b7280;
     }
+        .feedback {
+      margin-top: 16px;
+      background: #ffffff;
+      border-radius: 14px;
+      padding: 12px 16px 16px;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+      font-size: 13px;
+    }
+
+    .feedback h2 {
+      margin: 0 0 6px;
+      font-size: 14px;
+      color: var(--midnight);
+    }
+
+    .feedback-note {
+      font-size: 11px;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+
+    .feedback textarea {
+      width: 100%;
+      margin-top: 6px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid #d1d5db;
+      font-family: inherit;
+      font-size: 13px;
+      resize: vertical;
+      min-height: 70px;
+    }
+
   </style>
 </head>
 <body>
@@ -544,6 +597,45 @@
         <div class="status">No stories saved yet.</div>
       </div>
     </div>
+        <form
+      name="dreamtales-feedback"
+      method="POST"
+      data-netlify="true"
+      class="feedback"
+    >
+      <h2>Share quick feedback</h2>
+      <div class="feedback-note">
+        This form sends feedback privately to the creator so DreamTales can improve.
+      </div>
+
+      <!-- Netlify form name -->
+      <input type="hidden" name="form-name" value="dreamtales-feedback" />
+
+      <label>
+        Your name (optional)
+        <input type="text" name="name" />
+      </label>
+
+      <label>
+        How was your experience?
+        <select name="rating">
+          <option value="5">⭐⭐⭐⭐⭐ Loved it</option>
+          <option value="4">⭐⭐⭐⭐ Good</option>
+          <option value="3">⭐⭐⭐ Okay</option>
+          <option value="2">⭐⭐ Needs improvement</option>
+          <option value="1">⭐ Not great</option>
+        </select>
+      </label>
+
+      <label>
+        Comments or ideas for improvement
+        <textarea name="comments" placeholder="What worked well? What would you change?"></textarea>
+      </label>
+
+      <button type="submit" class="secondary-btn" style="margin-top:10px;">
+        Send feedback
+      </button>
+    </form>
   </div>
 
   <!-- Netlify Identity widget -->
@@ -738,9 +830,33 @@ if ("speechSynthesis" in window) {
         item.className = "saved-story-item";
         item.dataset.id = story.id;
 
-        const titleSpan = document.createElement("span");
-        titleSpan.textContent = story.title || `Story for ${story.childName || "child"}`;
+        // Top row: title + delete button
+        const headerRow = document.createElement("div");
+        headerRow.className = "saved-story-header";
 
+        const titleSpan = document.createElement("span");
+        titleSpan.textContent =
+          story.title || `Story for ${story.childName || "child"}`;
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className = "delete-story-btn";
+        deleteBtn.textContent = "✕";
+
+        deleteBtn.addEventListener("click", (e) => {
+          e.stopPropagation(); // don't trigger "load story"
+          const ok = confirm("Delete this saved story?");
+          if (!ok) return;
+
+          savedStories = savedStories.filter(s => s.id !== story.id);
+          saveStoriesToStorage();
+          renderSavedStories();
+        });
+
+        headerRow.appendChild(titleSpan);
+        headerRow.appendChild(deleteBtn);
+
+        // Meta line
         const metaSpan = document.createElement("span");
         metaSpan.className = "saved-story-meta";
         const date = story.createdAt ? new Date(story.createdAt) : null;
@@ -750,9 +866,10 @@ if ("speechSynthesis" in window) {
           (story.language ? ` • ${story.language}` : "") +
           (dateStr ? ` • ${dateStr}` : "");
 
-        item.appendChild(titleSpan);
+        item.appendChild(headerRow);
         item.appendChild(metaSpan);
 
+        // Click on card loads story
         item.addEventListener("click", () => {
           loadStoryIntoViewer(story.id);
         });
@@ -1273,7 +1390,9 @@ if ("speechSynthesis" in window) {
       coverImageUrl = null;
       renderPage();
 
-      const range = sentenceRangeForLength(length);
+            const range = sentenceRangeForLength(length);
+      // Tiny random tag so the model has a reason to vary outputs
+      const variationTag = Math.random().toString(36).slice(2, 8);
 
       const userContent = `
 Create a bedtime story for a child.
@@ -1294,7 +1413,9 @@ Rules:
 6. Write the main story in ${range}, as one continuous block of text. Do not label the sentences.
 7. At the end, write one clear sentence that explains the lesson of the story. This sentence MUST start with the English label 'Moral:' followed by a space, and then the moral sentence in the target language.
 8. After the moral, add a new section titled 'Illustration Prompts:' and list 4 bullet-point prompts describing key scenes for an illustrator or image model.
+9. Internally, use this variation tag to make each story slightly different, even when inputs are the same: ${variationTag}. Do NOT mention or show this tag in the story.
 `.trim();
+
 
       try {
         const response = await fetch("/.netlify/functions/story", {
@@ -1439,5 +1560,6 @@ Rules:
   </script>
 </body>
 </html>
+
 
 
