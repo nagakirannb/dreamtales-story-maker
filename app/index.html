@@ -597,6 +597,21 @@
     const languageSelect = document.getElementById("language");
     const listenStoryBtn = document.getElementById("listenStoryBtn");
 
+    // ---- Speech synthesis voice handling ----
+let ttsVoices = [];
+
+function loadVoices() {
+  if (!("speechSynthesis" in window)) return;
+  ttsVoices = window.speechSynthesis.getVoices();
+}
+
+if ("speechSynthesis" in window) {
+  loadVoices();
+  window.speechSynthesis.addEventListener("voiceschanged", loadVoices);
+}
+
+    
+    
     // ---------- helpers for auth + storage ----------
 
     function getCurrentIdentityUser() {
@@ -1059,57 +1074,78 @@
       return storyLines.join("\n");
     }
 
-    function speakStory() {
-      if (!("speechSynthesis" in window)) {
-        statusEl.textContent = "Audio is not supported in this browser. Try Chrome or Edge.";
-        return;
-      }
+    async function speakStory() {
+  if (!("speechSynthesis" in window)) {
+    statusEl.textContent = "Audio is not supported in this browser. Try Chrome or Edge.";
+    return;
+  }
 
-      const text = getStoryTextForAudio();
-      if (!text) return;
+  const text = getStoryTextForAudio();
+  if (!text) return;
 
-      const langCode = getLanguageCode(lastLanguage || "English");
-      window.speechSynthesis.cancel();
+  const langCode = getLanguageCode(lastLanguage || "English");
+  window.speechSynthesis.cancel();
 
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = langCode;
-      utterance.rate = 0.95;
+  // If voices aren’t loaded yet, wait a moment and try again
+  if (!ttsVoices.length) {
+    await new Promise(resolve => setTimeout(resolve, 250));
+    ttsVoices = window.speechSynthesis.getVoices();
+  }
 
-      utterance.onstart = () => {
-        isSpeaking = true;
-        if (listenStoryBtn) listenStoryBtn.textContent = "⏹ Stop audio";
-      };
-      utterance.onend = () => {
-        isSpeaking = false;
-        if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
-      };
-      utterance.onerror = () => {
-        isSpeaking = false;
-        if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
-        statusEl.textContent = "There was a problem with audio playback.";
-      };
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = langCode;
+  utterance.rate = 0.95;
 
-      currentUtterance = utterance;
-      window.speechSynthesis.speak(utterance);
+  // Try to pick a voice that matches the language (e.g., "es" for Spanish)
+  if (ttsVoices && ttsVoices.length) {
+    const base = langCode.split("-")[0]; // "es" from "es-ES"
+    const match =
+      ttsVoices.find(v => v.lang && v.lang.startsWith(langCode)) ||
+      ttsVoices.find(v => v.lang && v.lang.startsWith(base));
+
+    if (match) {
+      utterance.voice = match;
     }
+  }
+
+  utterance.onstart = () => {
+    isSpeaking = true;
+    if (listenStoryBtn) listenStoryBtn.textContent = "⏹ Stop audio";
+  };
+  utterance.onend = () => {
+    isSpeaking = false;
+    if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
+  };
+  utterance.onerror = (e) => {
+    console.error("Speech synthesis error:", e);
+    isSpeaking = false;
+    if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
+    statusEl.textContent = "Audio could not start. Try again or switch browser/device.";
+  };
+
+  currentUtterance = utterance;
+  window.speechSynthesis.speak(utterance);
+}
+
 
     function stopStoryAudio() {
       if (!("speechSynthesis" in window)) return;
       window.speechSynthesis.cancel();
       isSpeaking = false;
-      if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
-    }
-
-    if (listenStoryBtn) {
-      listenStoryBtn.addEventListener("click", () => {
-        if (!storyPages.length) return;
-        if (isSpeaking) {
-          stopStoryAudio();
-        } else {
-          speakStory();
-        }
+      if (listenStoryBtn) {
+  listenStoryBtn.addEventListener("click", () => {
+    if (!storyPages.length) return;
+    if (isSpeaking) {
+      stopStoryAudio();
+    } else {
+      speakStory().catch(err => {
+        console.error("Error starting audio:", err);
+        statusEl.textContent = "Audio could not start. Try again.";
       });
     }
+  });
+}
+
 
     // ---------- save story (local + cloud) ----------
 
@@ -1393,3 +1429,4 @@ Rules:
   </script>
 </body>
 </html>
+
