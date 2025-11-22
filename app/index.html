@@ -37,7 +37,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
 
     .brand-icon {
@@ -209,6 +209,21 @@
       box-shadow:
         inset 0 0 0 1px rgba(229, 231, 235, 0.9),
         0 0 0 1px rgba(255, 255, 255, 0.8);
+      transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .storybook-page.audio-reading {
+      background: #fff8e1;
+      border-color: #fde68a;
+      box-shadow:
+        inset 0 0 0 1px rgba(250, 204, 21, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.9);
+    }
+
+    .storybook-page.audio-reading p {
+      background: #fff3c4;
+      border-radius: 6px;
+      padding: 2px 4px;
     }
 
     .page-fade {
@@ -484,9 +499,14 @@
       <button id="authBtn" class="auth-btn">Sign in</button>
     </div>
 
+    <!-- Back / Home button in reading mode -->
+    <button id="backHomeBtn" class="secondary-btn" style="display:none; margin-bottom:10px;">
+      ← Back to setup
+    </button>
+
     <div class="layout">
       <!-- LEFT: form -->
-      <div class="card">
+      <div class="card" id="personalizationCard">
         <h1>Personalized Bedtime Stories</h1>
         <div class="subtitle">
           Create soothing, personalized bedtime stories in seconds – just add your child’s name and a moral.
@@ -657,6 +677,9 @@
     // audio state
     let isSpeaking = false;
     let currentUtterance = null;
+    let ttsVoices = [];
+    let audioSegments = [];
+    let audioSegmentIndex = 0;
 
     // metadata for the current story
     let lastChildName = "";
@@ -687,10 +710,12 @@
     const downloadPdfBtn = document.getElementById("downloadPdfBtn");
     const languageSelect = document.getElementById("language");
     const listenStoryBtn = document.getElementById("listenStoryBtn");
+    const personalizationCard = document.getElementById("personalizationCard");
+    const savedStoriesSectionEl = document.getElementById("savedStoriesSection");
+    const feedbackForm = document.querySelector("form[name='dreamtales-feedback']");
+    const backHomeBtn = document.getElementById("backHomeBtn");
 
     // ---- Speech synthesis voice handling ----
-    let ttsVoices = [];
-
     function loadVoices() {
       if (!("speechSynthesis" in window)) return;
       ttsVoices = window.speechSynthesis.getVoices();
@@ -808,6 +833,29 @@
       }
     }
 
+    // ---------- Reading mode toggle ----------
+
+    function enterReadingMode() {
+      if (personalizationCard) personalizationCard.style.display = "none";
+      if (authStatus) authStatus.style.display = "none";
+      if (savedStoriesSectionEl) savedStoriesSectionEl.style.display = "none";
+      if (feedbackForm) feedbackForm.style.display = "none";
+      if (backHomeBtn) backHomeBtn.style.display = "inline-block";
+    }
+
+    function exitReadingMode() {
+      stopStoryAudio();
+      if (personalizationCard) personalizationCard.style.display = "block";
+      if (authStatus) authStatus.style.display = "block";
+      if (savedStoriesSectionEl) savedStoriesSectionEl.style.display = "block";
+      if (feedbackForm) feedbackForm.style.display = "block";
+      if (backHomeBtn) backHomeBtn.style.display = "none";
+    }
+
+    if (backHomeBtn) {
+      backHomeBtn.addEventListener("click", exitReadingMode);
+    }
+
     // ---------- UI render functions ----------
 
     function renderSavedStories() {
@@ -869,6 +917,7 @@
         // Click on card loads story
         item.addEventListener("click", () => {
           loadStoryIntoViewer(story.id);
+          enterReadingMode();
         });
 
         savedStoriesList.appendChild(item);
@@ -886,11 +935,13 @@
         saveStoryBtn.disabled = true;
         if (downloadPdfBtn) downloadPdfBtn.disabled = true;
         if (listenStoryBtn) listenStoryBtn.disabled = true;
+        pageEl.classList.remove("audio-reading");
         return;
       }
 
       placeholderEl.style.display = "none";
       pageEl.innerHTML = "";
+      pageEl.classList.remove("audio-reading");
 
       const isFirstPage = currentPageIndex === 0;
       const isLastPage = currentPageIndex === storyPages.length - 1;
@@ -1171,21 +1222,31 @@
       }
     }
 
-    function getStoryTextForAudio() {
-      if (!storyPages.length) return "";
+    function getAudioSegments() {
+      const segments = [];
+      if (!storyPages.length) return segments;
 
-      const storyLines = [];
-      storyPages.forEach(page => {
+      storyPages.forEach((page, idx) => {
         const text = page.join(" ").trim();
-        if (text) storyLines.push(text);
+        if (text) {
+          segments.push({ pageIndex: idx, text });
+        }
       });
 
       if (currentMoralLine) {
-        storyLines.push("");
-        storyLines.push(currentMoralLine);
+        segments.push({
+          pageIndex: storyPages.length - 1,
+          text: currentMoralLine
+        });
       }
 
-      return storyLines.join("\n");
+      return segments;
+    }
+
+    function clearAudioHighlight() {
+      if (pageEl) {
+        pageEl.classList.remove("audio-reading");
+      }
     }
 
     async function speakStory() {
@@ -1194,8 +1255,8 @@
         return;
       }
 
-      const text = getStoryTextForAudio();
-      if (!text) return;
+      const segments = getAudioSegments();
+      if (!segments.length) return;
 
       const langCode = getLanguageCode(lastLanguage || "English");
       window.speechSynthesis.cancel();
@@ -1206,11 +1267,7 @@
         ttsVoices = window.speechSynthesis.getVoices();
       }
 
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = langCode;
-      utterance.rate = 0.95;
-
-      // Try to pick a voice that matches the language (e.g., "es" for Spanish, "ta" for Tamil)
+      // Choose voice
       let chosenVoice = null;
       if (ttsVoices && ttsVoices.length) {
         const base = langCode.split("-")[0]; // "es" from "es-ES"
@@ -1218,7 +1275,7 @@
           ttsVoices.find(v => v.lang && v.lang.startsWith(langCode)) ||
           ttsVoices.find(v => v.lang && v.lang.startsWith(base));
 
-        // Fallback: if no matching language voice is found, just use the first available voice
+        // Fallback: first voice
         if (!chosenVoice) {
           chosenVoice = ttsVoices[0];
           statusEl.textContent =
@@ -1226,33 +1283,74 @@
         }
       }
 
-      if (chosenVoice) {
-        utterance.voice = chosenVoice;
+      audioSegments = segments;
+      audioSegmentIndex = 0;
+
+      function playNextSegment() {
+        if (audioSegmentIndex >= audioSegments.length) {
+          // Done
+          isSpeaking = false;
+          clearAudioHighlight();
+          if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
+          return;
+        }
+
+        const seg = audioSegments[audioSegmentIndex];
+
+        // Navigate to the relevant page
+        if (
+          typeof seg.pageIndex === "number" &&
+          seg.pageIndex >= 0 &&
+          seg.pageIndex < storyPages.length
+        ) {
+          currentPageIndex = seg.pageIndex;
+          renderPage();
+        }
+
+        // Highlight the page being read
+        pageEl.classList.add("audio-reading");
+
+        const utterance = new SpeechSynthesisUtterance(seg.text);
+        utterance.lang = langCode;
+        utterance.rate = 0.9;  // slightly slower = smoother
+        utterance.pitch = 1.0;
+
+        if (chosenVoice) {
+          utterance.voice = chosenVoice;
+        }
+
+        utterance.onstart = () => {
+          isSpeaking = true;
+          if (listenStoryBtn) listenStoryBtn.textContent = "⏹ Stop audio";
+        };
+
+        utterance.onend = () => {
+          audioSegmentIndex++;
+          playNextSegment();
+        };
+
+        utterance.onerror = (e) => {
+          console.error("Speech synthesis error:", e);
+          isSpeaking = false;
+          clearAudioHighlight();
+          if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
+          statusEl.textContent = "Audio could not start. Try again or switch browser/device.";
+        };
+
+        currentUtterance = utterance;
+        window.speechSynthesis.speak(utterance);
       }
 
-      utterance.onstart = () => {
-        isSpeaking = true;
-        if (listenStoryBtn) listenStoryBtn.textContent = "⏹ Stop audio";
-      };
-      utterance.onend = () => {
-        isSpeaking = false;
-        if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
-      };
-      utterance.onerror = (e) => {
-        console.error("Speech synthesis error:", e);
-        isSpeaking = false;
-        if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
-        statusEl.textContent = "Audio could not start. Try again or switch browser/device.";
-      };
-
-      currentUtterance = utterance;
-      window.speechSynthesis.speak(utterance);
+      playNextSegment();
     }
 
     function stopStoryAudio() {
       if (!("speechSynthesis" in window)) return;
       window.speechSynthesis.cancel();
       isSpeaking = false;
+      audioSegments = [];
+      audioSegmentIndex = 0;
+      clearAudioHighlight();
       if (listenStoryBtn) {
         listenStoryBtn.textContent = "🔊 Listen";
       }
@@ -1485,11 +1583,14 @@ Rules:
 
         titleEl.textContent = "Bedtime story for " + childName;
         statusEl.textContent =
-          "Story ready ✨ (Illustrated covers coming soon – current version focuses on text, audio, and PDFs.)";
+          "Story ready ✨ (current version focuses on text, audio, and PDFs.)";
 
         saveStoryBtn.disabled = false;
         if (downloadPdfBtn) downloadPdfBtn.disabled = false;
         if (listenStoryBtn) listenStoryBtn.disabled = false;
+
+        // Enter reading-only mode after successful generation
+        enterReadingMode();
       } catch (err) {
         console.error(err);
         statusEl.textContent = "Something went wrong: " + err.message;
@@ -1561,4 +1662,3 @@ Rules:
   </script>
 </body>
 </html>
-
