@@ -212,20 +212,6 @@
       transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     }
 
-    .storybook-page.audio-reading {
-      background: #fff8e1;
-      border-color: #fde68a;
-      box-shadow:
-        inset 0 0 0 1px rgba(250, 204, 21, 0.3),
-        0 0 0 1px rgba(255, 255, 255, 0.9);
-    }
-
-    .storybook-page.audio-reading p {
-      background: #fff3c4;
-      border-radius: 6px;
-      padding: 2px 4px;
-    }
-
     .page-fade {
       animation: pageFade 0.2s ease-out;
     }
@@ -487,6 +473,13 @@
       resize: vertical;
       min-height: 70px;
     }
+
+    /* AUDIO HIGHLIGHT: individual word */
+    .story-word-highlight {
+      background: #fbbf24;
+      border-radius: 4px;
+      padding: 0 1px;
+    }
   </style>
 </head>
 <body>
@@ -627,7 +620,6 @@
         This form sends feedback privately to the creator so DreamTales can improve.
       </div>
 
-      <!-- Netlify form name -->
       <input type="hidden" name="form-name" value="dreamtales-feedback" />
 
       <label>
@@ -680,6 +672,7 @@
     let ttsVoices = [];
     let audioSegments = [];
     let audioSegmentIndex = 0;
+    let currentWordInfos = []; // { start, end, span }
 
     // metadata for the current story
     let lastChildName = "";
@@ -836,11 +829,12 @@
     // ---------- Reading mode toggle ----------
 
     function enterReadingMode() {
-      if (personalizationCard) personalizationCard.style.display = "none";
-      if (authStatus) authStatus.style.display = "none";
-      if (savedStoriesSectionEl) savedStoriesSectionEl.style.display = "none";
-      if (feedbackForm) feedbackForm.style.display = "none";
-      if (backHomeBtn) backHomeBtn.style.display = "inline-block";
+      if (personalizationCard) personalizationCard.style.display = "block"; // you can change to "none" if you want it hidden
+      if (authStatus) authStatus.style.display = "block";
+      if (savedStoriesSectionEl) savedStoriesSectionEl.style.display = "block";
+      if (feedbackForm) feedbackForm.style.display = "block";
+      if (backHomeBtn) backHomeBtn.style.display = "none";
+      // NOTE: if you want full-screen book, flip the above display flags
     }
 
     function exitReadingMode() {
@@ -889,7 +883,7 @@
         deleteBtn.textContent = "✕";
 
         deleteBtn.addEventListener("click", (e) => {
-          e.stopPropagation(); // don't trigger "load story"
+          e.stopPropagation();
           const ok = confirm("Delete this saved story?");
           if (!ok) return;
 
@@ -901,7 +895,6 @@
         headerRow.appendChild(titleSpan);
         headerRow.appendChild(deleteBtn);
 
-        // Meta line
         const metaSpan = document.createElement("span");
         metaSpan.className = "saved-story-meta";
         const date = story.createdAt ? new Date(story.createdAt) : null;
@@ -914,7 +907,6 @@
         item.appendChild(headerRow);
         item.appendChild(metaSpan);
 
-        // Click on card loads story
         item.addEventListener("click", () => {
           loadStoryIntoViewer(story.id);
           enterReadingMode();
@@ -935,13 +927,11 @@
         saveStoryBtn.disabled = true;
         if (downloadPdfBtn) downloadPdfBtn.disabled = true;
         if (listenStoryBtn) listenStoryBtn.disabled = true;
-        pageEl.classList.remove("audio-reading");
         return;
       }
 
       placeholderEl.style.display = "none";
       pageEl.innerHTML = "";
-      pageEl.classList.remove("audio-reading");
 
       const isFirstPage = currentPageIndex === 0;
       const isLastPage = currentPageIndex === storyPages.length - 1;
@@ -996,6 +986,7 @@
       lastTheme = story.theme || "";
       lastStyle = story.style || "";
       lastLength = story.length || "";
+      lastLanguage = story.language || "English";
 
       titleEl.textContent = story.title || `Bedtime story for ${lastChildName || "your child"}`;
       pillEl.textContent = `${story.theme || "Story"} • ${story.style || ""}`;
@@ -1205,7 +1196,7 @@
       downloadPdfBtn.addEventListener("click", downloadStoryPdf);
     }
 
-    // ---------- AUDIO (browser SpeechSynthesis) ----------
+    // ---------- AUDIO (browser SpeechSynthesis) with word highlight ----------
 
     function getLanguageCode(language) {
       switch (language) {
@@ -1243,10 +1234,71 @@
       return segments;
     }
 
-    function clearAudioHighlight() {
-      if (pageEl) {
-        pageEl.classList.remove("audio-reading");
+    function clearWordHighlight() {
+      currentWordInfos.forEach(info => {
+        if (info.span) info.span.classList.remove("story-word-highlight");
+      });
+    }
+
+    function buildWordSpansForSegment(segText) {
+      currentWordInfos = [];
+      pageEl.innerHTML = "";
+      const p = document.createElement("p");
+      pageEl.appendChild(p);
+
+      const text = segText;
+      const regex = /\S+/g;
+      let match;
+      let lastIndex = 0;
+      let idx = 0;
+
+      while ((match = regex.exec(text)) !== null) {
+        const spaces = text.slice(lastIndex, match.index);
+        if (spaces) {
+          p.appendChild(document.createTextNode(spaces));
+        }
+
+        const span = document.createElement("span");
+        span.textContent = match[0];
+        span.dataset.wordIndex = idx;
+        p.appendChild(span);
+
+        currentWordInfos.push({
+          start: match.index,
+          end: match.index + match[0].length,
+          span
+        });
+
+        lastIndex = match.index + match[0].length;
+        idx++;
       }
+
+      const tail = text.slice(lastIndex);
+      if (tail) {
+        p.appendChild(document.createTextNode(tail));
+      }
+    }
+
+    function highlightWordAtCharIndex(charIndex) {
+      if (!currentWordInfos || !currentWordInfos.length) return;
+      // find last word whose start <= charIndex
+      let activeIndex = 0;
+      for (let i = 0; i < currentWordInfos.length; i++) {
+        if (currentWordInfos[i].start <= charIndex) {
+          activeIndex = i;
+        } else {
+          break;
+        }
+      }
+      currentWordInfos.forEach((info, i) => {
+        if (info.span) {
+          if (i === activeIndex) {
+            info.span.classList.add("story-word-highlight");
+          } else {
+            info.span.classList.remove("story-word-highlight");
+          }
+        }
+      });
     }
 
     async function speakStory() {
@@ -1270,12 +1322,11 @@
       // Choose voice
       let chosenVoice = null;
       if (ttsVoices && ttsVoices.length) {
-        const base = langCode.split("-")[0]; // "es" from "es-ES"
+        const base = langCode.split("-")[0];
         chosenVoice =
           ttsVoices.find(v => v.lang && v.lang.startsWith(langCode)) ||
           ttsVoices.find(v => v.lang && v.lang.startsWith(base));
 
-        // Fallback: first voice
         if (!chosenVoice) {
           chosenVoice = ttsVoices[0];
           statusEl.textContent =
@@ -1288,31 +1339,28 @@
 
       function playNextSegment() {
         if (audioSegmentIndex >= audioSegments.length) {
-          // Done
           isSpeaking = false;
-          clearAudioHighlight();
+          clearWordHighlight();
           if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
           return;
         }
 
         const seg = audioSegments[audioSegmentIndex];
 
-        // Navigate to the relevant page
+        // Navigate to relevant page
         if (
           typeof seg.pageIndex === "number" &&
           seg.pageIndex >= 0 &&
           seg.pageIndex < storyPages.length
         ) {
           currentPageIndex = seg.pageIndex;
-          renderPage();
+          // We re-render in a simple "single paragraph" form for the audio segment
+          buildWordSpansForSegment(seg.text);
         }
-
-        // Highlight the page being read
-        pageEl.classList.add("audio-reading");
 
         const utterance = new SpeechSynthesisUtterance(seg.text);
         utterance.lang = langCode;
-        utterance.rate = 0.9;  // slightly slower = smoother
+        utterance.rate = 0.9;
         utterance.pitch = 1.0;
 
         if (chosenVoice) {
@@ -1324,7 +1372,14 @@
           if (listenStoryBtn) listenStoryBtn.textContent = "⏹ Stop audio";
         };
 
+        utterance.onboundary = (event) => {
+          if (typeof event.charIndex === "number") {
+            highlightWordAtCharIndex(event.charIndex);
+          }
+        };
+
         utterance.onend = () => {
+          clearWordHighlight();
           audioSegmentIndex++;
           playNextSegment();
         };
@@ -1332,7 +1387,7 @@
         utterance.onerror = (e) => {
           console.error("Speech synthesis error:", e);
           isSpeaking = false;
-          clearAudioHighlight();
+          clearWordHighlight();
           if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
           statusEl.textContent = "Audio could not start. Try again or switch browser/device.";
         };
@@ -1350,22 +1405,19 @@
       isSpeaking = false;
       audioSegments = [];
       audioSegmentIndex = 0;
-      clearAudioHighlight();
+      clearWordHighlight();
       if (listenStoryBtn) {
         listenStoryBtn.textContent = "🔊 Listen";
       }
     }
 
-    // Attach click handler for the Listen button
     if (listenStoryBtn) {
       listenStoryBtn.addEventListener("click", () => {
         if (!storyPages.length) return;
 
         if (isSpeaking) {
-          // If already speaking, stop
           stopStoryAudio();
         } else {
-          // Start speaking
           speakStory().catch(err => {
             console.error("Error starting audio:", err);
             statusEl.textContent = "Audio could not start. Try again.";
@@ -1447,7 +1499,6 @@
     // ---------- story generation (images parked) ----------
 
     async function generateCoverIllustration(childName, age, theme, illustrationPrompts) {
-      // parked for now – not called
       return;
     }
 
@@ -1464,7 +1515,6 @@
         return;
       }
 
-      // stop any playing audio when generating a new story
       stopStoryAudio();
 
       lastChildName = childName;
@@ -1491,7 +1541,6 @@
       renderPage();
 
       const range = sentenceRangeForLength(length);
-      // Tiny random tag so the model has a reason to vary outputs
       const variationTag = Math.random().toString(36).slice(2, 8);
 
       const userContent = `
@@ -1573,7 +1622,6 @@ Rules:
           .map(s => s.trim())
           .filter(s => s.length > 0);
 
-        // group sentences into multi-sentence pages
         storyPages = chunkSentencesIntoPages(sentences, length);
 
         currentMoralLine = moralLine;
@@ -1583,13 +1631,12 @@ Rules:
 
         titleEl.textContent = "Bedtime story for " + childName;
         statusEl.textContent =
-          "Story ready ✨ (current version focuses on text, audio, and PDFs.)";
+          "Story ready ✨ (text, audio, and PDFs are available.)";
 
         saveStoryBtn.disabled = false;
         if (downloadPdfBtn) downloadPdfBtn.disabled = false;
         if (listenStoryBtn) listenStoryBtn.disabled = false;
 
-        // Enter reading-only mode after successful generation
         enterReadingMode();
       } catch (err) {
         console.error(err);
