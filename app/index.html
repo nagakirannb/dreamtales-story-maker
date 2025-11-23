@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>DreamTales – Bedtime Story Maker</title>
+  <title>DreamTalez – Bedtime Story Maker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#0b1d3b" />
@@ -487,7 +487,7 @@
     <div class="brand">
       <div style="display:flex; align-items:center; gap:10px; flex:1;">
         <div class="brand-icon">🌙</div>
-        <div class="brand-text">DreamTales – Bedtime Story Maker</div>
+        <div class="brand-text">DreamTalez – Bedtime Story Maker</div>
       </div>
       <button id="authBtn" class="auth-btn">Sign in</button>
     </div>
@@ -610,17 +610,17 @@
     </div>
 
     <form
-      name="dreamtales-feedback"
+      name="DreamTalez-feedback"
       method="POST"
       data-netlify="true"
       class="feedback"
     >
       <h2>Share quick feedback</h2>
       <div class="feedback-note">
-        This form sends feedback privately to the creator so DreamTales can improve.
+        This form sends feedback privately to the creator so DreamTalez can improve.
       </div>
 
-      <input type="hidden" name="form-name" value="dreamtales-feedback" />
+      <input type="hidden" name="form-name" value="DreamTalez-feedback" />
 
       <label>
         Your name (optional)
@@ -705,7 +705,7 @@
     const listenStoryBtn = document.getElementById("listenStoryBtn");
     const personalizationCard = document.getElementById("personalizationCard");
     const savedStoriesSectionEl = document.getElementById("savedStoriesSection");
-    const feedbackForm = document.querySelector("form[name='dreamtales-feedback']");
+    const feedbackForm = document.querySelector("form[name='DreamTalez-feedback']");
     const backHomeBtn = document.getElementById("backHomeBtn");
 
     // ---- Speech synthesis voice handling ----
@@ -732,7 +732,7 @@
       if (user) {
         userId = user.id || user.email || "guest";
       }
-      return "dreamtales_stories_" + userId;
+      return "DreamTalez_stories_" + userId;
     }
 
     function loadStoriesFromStorage() {
@@ -1129,7 +1129,7 @@
       function drawHeader() {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(16);
-        doc.text("DreamTales – Bedtime Story Maker", marginX, y);
+        doc.text("DreamTalez – Bedtime Story Maker", marginX, y);
         y += 22;
 
         doc.setFont("helvetica", "normal");
@@ -1187,7 +1187,7 @@
 
       drawFooter();
 
-      const safeName = lastChildName ? `dreamtales_${lastChildName}.pdf` : "dreamtales_story.pdf";
+      const safeName = lastChildName ? `DreamTalez_${lastChildName}.pdf` : "DreamTalez_story.pdf";
       doc.save(safeName);
       statusEl.textContent = "Story downloaded as PDF ✔";
     }
@@ -1709,3 +1709,4 @@ Rules:
   </script>
 </body>
 </html>
+
