@@ -2,97 +2,170 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>DreamTalez – Bedtime Story Maker</title>
+  <title>DreamTales – Bedtime Story Maker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <meta name="theme-color" content="#0b1d3b" />
+  <meta name="theme-color" content="#020617" />
   <style>
     :root {
-      --midnight: #0b1d3b;
-      --yellow: #ffd66b;
-      --card-bg: #ffffff;
-      --border: #d0d6f0;
+      --midnight: #020617; /* deep navy */
+      --midnight-soft: #02081f;
+      --night-gradient-start: #020617;
+      --night-gradient-end: #0b1220;
+      --accent-gold: #f4d27a;
+      --accent-gold-soft: rgba(244, 210, 122, 0.18);
+      --card-bg: rgba(15, 23, 42, 0.88);
+      --border: rgba(148, 163, 184, 0.55);
+      --text-main: #e5e7eb;
+      --text-muted: #9ca3af;
     }
 
     * { box-sizing: border-box; }
 
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top, #e6ecff 0, #f7f8ff 40%, #fdfdff 100%);
+      background:
+        radial-gradient(circle at top, rgba(56, 189, 248, 0.12) 0, transparent 45%),
+        radial-gradient(circle at bottom, rgba(244, 210, 122, 0.12) 0, transparent 50%),
+        linear-gradient(to bottom, var(--night-gradient-start), var(--night-gradient-end));
       margin: 0;
       padding: 0;
       display: flex;
       justify-content: center;
       min-height: 100vh;
+      color: var(--text-main);
     }
 
     .app-shell {
       width: 100%;
-      max-width: 960px;
+      max-width: 1040px;
       margin: 16px;
       padding: 12px;
+      border-radius: 18px;
+      background: radial-gradient(circle at top left, rgba(15,23,42,0.95), rgba(15,23,42,0.85));
+      box-shadow:
+        0 24px 60px rgba(15, 23, 42, 0.55),
+        0 0 0 1px rgba(148, 163, 184, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* subtle star speckles */
+    .app-shell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 10% 20%, rgba(248, 250, 252, 0.13) 0, transparent 55%),
+        radial-gradient(circle at 80% 10%, rgba(248, 250, 252, 0.09) 0, transparent 60%);
+      opacity: 0.5;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .app-shell-inner {
+      position: relative;
+      z-index: 1;
     }
 
     .brand {
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
+    }
+
+    .brand-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
     }
 
     .brand-icon {
       width: 40px;
       height: 40px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 30% 20%, #fff 0, #ffe89a 40%, #f7d05a 100%);
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 30% 20%, #fefce8 0, #facc15 40%, #eab308 80%);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 22px;
+      box-shadow:
+        0 0 0 2px rgba(24, 37, 66, 0.6),
+        0 10px 25px rgba(15, 23, 42, 0.6);
     }
 
     .brand-text {
       font-weight: 700;
-      color: var(--midnight);
+      color: #f9fafb;
       font-size: 18px;
+    }
+
+    .brand-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .auth-btn {
+      width: auto;
+      padding-inline: 14px;
+      margin-top: 0;
+      font-size: 13px;
+      white-space: nowrap;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--text-main);
+      padding-block: 8px;
+      cursor: pointer;
+    }
+
+    .auth-btn:hover {
+      background: rgba(15, 23, 42, 1);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.6);
     }
 
     .layout {
       display: grid;
       grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
       gap: 18px;
+      margin-top: 8px;
     }
 
-    @media (max-width: 800px) {
+    @media (max-width: 900px) {
       .layout { grid-template-columns: 1fr; }
     }
 
     .card {
       background: var(--card-bg);
       border-radius: 18px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      box-shadow:
+        0 12px 30px rgba(15, 23, 42, 0.8),
+        0 0 0 1px rgba(148, 163, 184, 0.3);
       padding: 18px 18px 22px;
-      border: 1px solid rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(15, 23, 42, 0.9);
     }
 
     h1 {
-      font-size: 24px;
-      margin: 0 0 6px;
-      color: var(--midnight);
+      font-size: 22px;
+      margin: 0 0 4px;
+      color: #f9fafb;
     }
 
     .subtitle {
-      color: #555;
+      color: var(--text-muted);
       margin-bottom: 16px;
-      font-size: 14px;
+      font-size: 13px;
     }
 
     label {
       display: block;
       margin-top: 10px;
       font-weight: 600;
-      color: #222;
-      font-size: 14px;
+      color: #e5e7eb;
+      font-size: 13px;
     }
 
     input, select, button {
@@ -100,30 +173,37 @@
       margin-top: 6px;
       padding: 9px 11px;
       border-radius: 11px;
-      border: 1px solid var(--border);
+      border: 1px solid rgba(148, 163, 184, 0.6);
       font-size: 14px;
       font-family: inherit;
-      background: #fdfdff;
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--text-main);
+    }
+
+    input::placeholder {
+      color: rgba(148, 163, 184, 0.9);
     }
 
     input:focus, select:focus {
-      outline: 2px solid #c0ccff;
-      border-color: #a7b6ff;
+      outline: 2px solid rgba(244, 210, 122, 0.75);
+      border-color: rgba(244, 210, 122, 0.9);
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.9);
     }
 
     button {
       margin-top: 18px;
-      background: var(--yellow);
+      background: linear-gradient(to right, #facc15, #f97316);
       border: none;
       font-weight: 700;
       cursor: pointer;
-      transition: transform 0.05s ease, box-shadow 0.1s ease;
+      transition: transform 0.05s ease, box-shadow 0.1s ease, filter 0.1s ease;
       color: #42210b;
     }
 
     button:hover {
-      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      box-shadow: 0 8px 20px rgba(248, 250, 252, 0.15);
       transform: translateY(-1px);
+      filter: brightness(1.02);
     }
 
     button:disabled {
@@ -133,35 +213,39 @@
       transform: none;
     }
 
-    .auth-btn {
-      width: auto;
-      padding-inline: 14px;
-      margin-top: 0;
-      font-size: 13px;
-      white-space: nowrap;
-    }
-
     .status {
       font-size: 12px;
-      color: #666;
+      color: var(--text-muted);
       margin-top: 8px;
     }
 
-    /* MODERN MINIMAL STORYBOOK */
+    /* STORYBOOK PANEL – Magical night look */
 
     .storybook {
       display: flex;
       flex-direction: column;
       height: 100%;
-      background: #ffffff;
+      background: radial-gradient(circle at top left, #0f172a, #020617);
       border-radius: 18px;
-      border: 1px solid #e5e7eb;
+      border: 1px solid rgba(148, 163, 184, 0.3);
       box-shadow:
-        0 18px 40px rgba(15, 23, 42, 0.12),
-        0 0 0 1px rgba(255, 255, 255, 0.9);
+        0 20px 45px rgba(15, 23, 42, 0.9),
+        0 0 0 1px rgba(15, 23, 42, 0.9);
       padding: 16px 16px 18px;
       position: relative;
       overflow: hidden;
+    }
+
+    .storybook::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 15% 15%, rgba(248, 250, 252, 0.12) 0, transparent 55%),
+        radial-gradient(circle at 90% 20%, rgba(248, 250, 252, 0.09) 0, transparent 60%);
+      opacity: 0.55;
+      pointer-events: none;
+      z-index: 0;
     }
 
     .storybook-header {
@@ -171,20 +255,54 @@
       justify-content: space-between;
       align-items: center;
       gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .storybook-header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .header-home-btn {
+      width: auto;
+      font-size: 11px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: rgba(15, 23, 42, 0.95);
+      color: #e5e7eb;
+      padding: 4px 8px;
+      cursor: pointer;
+    }
+
+    .header-home-btn:hover {
+      background: rgba(15, 23, 42, 1);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.7);
     }
 
     .storybook-title {
       font-weight: 700;
-      font-size: 16px;
-      color: var(--midnight);
+      font-size: 15px;
+      color: #f9fafb;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    .storybook-header-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .storybook-pill {
       font-size: 11px;
       padding: 4px 8px;
       border-radius: 999px;
-      background: rgba(255, 214, 107, 0.2);
-      color: #7a5a0a;
+      background: var(--accent-gold-soft);
+      color: #facc15;
+      border: 1px solid rgba(250, 204, 21, 0.5);
     }
 
     .storybook-body {
@@ -199,21 +317,20 @@
       width: 100%;
       height: 100%;
       overflow-y: auto;
-      line-height: 1.6;
+      line-height: 1.7;
       font-size: 14.5px;
       color: #111827;
       white-space: pre-wrap;
-      background: #f9fafb;
-      border-radius: 14px;
+      background: radial-gradient(circle at top, #fefce8 0, #f9fafb 45%, #fef9c3 100%);
+      border-radius: 16px;
       padding: 14px 18px 16px;
       box-shadow:
-        inset 0 0 0 1px rgba(229, 231, 235, 0.9),
-        0 0 0 1px rgba(255, 255, 255, 0.8);
-      transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        0 0 0 1px rgba(252, 211, 77, 0.6),
+        0 16px 30px rgba(15, 23, 42, 0.55);
     }
 
     .page-fade {
-      animation: pageFade 0.2s ease-out;
+      animation: pageFade 0.22s ease-out;
     }
 
     @keyframes pageFade {
@@ -235,14 +352,14 @@
       margin-bottom: 12px;
       background: #e5e7eb;
       box-shadow:
-        0 10px 24px rgba(15, 23, 42, 0.18),
+        0 10px 24px rgba(15, 23, 42, 0.35),
         0 0 0 1px rgba(255, 255, 255, 0.9);
     }
 
     .storybook-placeholder {
       margin-top: 30px;
       text-align: center;
-      color: #777;
+      color: #4b5563;
       font-size: 13px;
     }
 
@@ -250,10 +367,12 @@
       margin-top: 10px;
       padding: 8px 10px;
       border-radius: 10px;
-      background: #fff9da;
-      border: 1px dashed #f0d16b;
+      background: #fef9c3;
+      border: 1px dashed #facc15;
       font-size: 13px;
       color: #4a3907;
+      position: relative;
+      z-index: 1;
     }
 
     .moral-label {
@@ -264,12 +383,14 @@
     .storybook-footer {
       margin-top: 10px;
       font-size: 12px;
-      color: #555;
-      border-top: 1px dashed #d0d6f0;
+      color: #d1d5db;
+      border-top: 1px dashed rgba(148, 163, 184, 0.6);
       padding-top: 8px;
       display: flex;
       flex-direction: column;
       gap: 8px;
+      position: relative;
+      z-index: 1;
     }
 
     .badge {
@@ -278,13 +399,14 @@
       gap: 4px;
       padding: 3px 8px;
       border-radius: 999px;
-      background: rgba(11, 29, 59, 0.06);
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.3);
       font-size: 11px;
-      color: #444;
+      color: var(--text-muted);
       max-width: 100%;
     }
 
-    /* Pager row: full width Prev | Page X of Y | Next */
+    /* Pager row */
 
     .pager-row {
       display: flex;
@@ -298,13 +420,14 @@
     .pager-btn {
       width: auto;
       border-radius: 999px;
-      border: 1px solid #ccd2f5;
+      border: 1px solid #cbd5f5;
       background: #ffffff;
       padding: 4px 10px;
       cursor: pointer;
       font-size: 11px;
       white-space: nowrap;
       flex: 0 0 auto;
+      color: #111827;
     }
 
     .pager-btn:disabled {
@@ -321,7 +444,7 @@
       color: #4b5563;
     }
 
-    /* Actions row: Listen + Download PDF + Save */
+    /* Actions row: Listen + Music + PDF + Save */
 
     .actions-row {
       display: flex;
@@ -332,61 +455,74 @@
     }
 
     .primary-btn,
-    .secondary-btn {
+    .secondary-btn,
+    .ghost-btn {
       width: auto;
-      flex: 1 1 160px;
+      flex: 1 1 140px;
       margin-top: 0;
       font-size: 13px;
     }
 
     .primary-btn {
-      background: var(--midnight);
-      color: #ffffff;
+      background: linear-gradient(to right, #facc15, #fb923c);
+      color: #42210b;
       border: none;
     }
 
     .primary-btn:hover:not(:disabled) {
-      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
-    }
-
-    .primary-btn:disabled {
-      opacity: 0.6;
-      cursor: default;
+      box-shadow: 0 4px 14px rgba(248, 250, 252, 0.25);
     }
 
     .secondary-btn {
-      background: #ffffff;
-      color: #111827;
-      border: 1px solid #d1d5db;
+      background: rgba(15, 23, 42, 0.95);
+      color: #e5e7eb;
+      border: 1px solid rgba(148, 163, 184, 0.8);
     }
 
     .secondary-btn:hover:not(:disabled) {
-      box-shadow: 0 3px 10px rgba(55, 65, 81, 0.18);
+      box-shadow: 0 3px 10px rgba(15, 23, 42, 0.7);
     }
 
-    .secondary-btn:disabled {
+    .ghost-btn {
+      background: transparent;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      color: #e5e7eb;
+    }
+
+    .ghost-btn:hover:not(:disabled) {
+      background: rgba(15, 23, 42, 0.9);
+      box-shadow: 0 3px 10px rgba(15, 23, 42, 0.7);
+    }
+
+    .primary-btn:disabled,
+    .secondary-btn:disabled,
+    .ghost-btn:disabled {
       opacity: 0.6;
       cursor: default;
     }
 
     .saved-stories {
       margin-top: 16px;
-      background: rgba(255, 255, 255, 0.92);
+      background: rgba(15, 23, 42, 0.9);
       border-radius: 14px;
       padding: 12px 16px 14px;
-      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.7);
       font-size: 13px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      position: relative;
+      z-index: 1;
     }
 
     .saved-stories h2 {
       margin: 0 0 6px;
       font-size: 14px;
-      color: var(--midnight);
+      color: #f9fafb;
     }
 
     .saved-stories-note {
       font-size: 11px;
-      color: #6b7280;
+      color: #9ca3af;
       margin-bottom: 6px;
     }
 
@@ -400,36 +536,15 @@
     .saved-story-item {
       padding: 6px 10px;
       border-radius: 10px;
-      border: 1px solid #e5e7eb;
-      background: #f9fafb;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 0.95);
       cursor: pointer;
       font-size: 12px;
-      color: #374151;
+      color: #e5e7eb;
       display: inline-flex;
       flex-direction: column;
       gap: 2px;
-      min-width: 140px;
-    }
-
-    .saved-story-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 6px;
-    }
-
-    .delete-story-btn {
-      border: none;
-      background: transparent;
-      color: #b91c1c;
-      cursor: pointer;
-      font-size: 12px;
-      padding: 0;
-      line-height: 1;
-    }
-
-    .delete-story-btn:hover {
-      text-decoration: underline;
+      min-width: 160px;
     }
 
     .saved-story-item span:first-child {
@@ -438,216 +553,199 @@
 
     .saved-story-meta {
       font-size: 11px;
-      color: #6b7280;
+      color: #9ca3af;
     }
 
-    .feedback {
-      margin-top: 16px;
-      background: #ffffff;
-      border-radius: 14px;
-      padding: 12px 16px 16px;
-      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
-      font-size: 13px;
+    .saved-story-item .delete-btn {
+      margin-top: 4px;
+      align-self: flex-start;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(248, 113, 113, 0.7);
+      background: rgba(127, 29, 29, 0.8);
+      color: #fee2e2;
+      cursor: pointer;
     }
 
-    .feedback h2 {
-      margin: 0 0 6px;
-      font-size: 14px;
-      color: var(--midnight);
+    .saved-story-item .delete-btn:hover {
+      background: rgba(127, 29, 29, 1);
     }
 
-    .feedback-note {
-      font-size: 11px;
-      color: #6b7280;
-      margin-bottom: 8px;
+    /* STORY MODE – hide left panel & saved section, center the book */
+
+    .story-mode .layout {
+      grid-template-columns: minmax(0, 1fr);
     }
 
-    .feedback textarea {
-      width: 100%;
-      margin-top: 6px;
-      padding: 8px 10px;
-      border-radius: 10px;
-      border: 1px solid #d1d5db;
-      font-family: inherit;
-      font-size: 13px;
-      resize: vertical;
-      min-height: 70px;
+    .story-mode .card,
+    .story-mode #savedStoriesSection,
+    .story-mode #authStatus {
+      display: none;
     }
 
-    /* AUDIO HIGHLIGHT: individual word */
-    .story-word-highlight {
-      background: #fbbf24;
-      border-radius: 4px;
-      padding: 0 1px;
+    .story-mode .storybook {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .story-mode .header-home-btn {
+      display: inline-block;
+    }
+
+    /* default: hide Home button in non-story-mode */
+    .header-home-btn {
+      display: none;
+    }
+
+    @media (max-width: 900px) {
+      .story-mode .storybook {
+        max-width: 100%;
+      }
     }
   </style>
 </head>
 <body>
   <div class="app-shell">
-    <div class="brand">
-      <div style="display:flex; align-items:center; gap:10px; flex:1;">
-        <div class="brand-icon">🌙</div>
-        <div class="brand-text">DreamTalez – Bedtime Story Maker</div>
-      </div>
-      <button id="authBtn" class="auth-btn">Sign in</button>
-    </div>
-
-    <!-- Back / Home button in reading mode -->
-    <button id="backHomeBtn" class="secondary-btn" style="display:none; margin-bottom:10px;">
-      ← Back to setup
-    </button>
-
-    <div class="layout">
-      <!-- LEFT: form -->
-      <div class="card" id="personalizationCard">
-        <h1>Personalized Bedtime Stories</h1>
-        <div class="subtitle">
-          Create soothing, personalized bedtime stories in seconds – just add your child’s name and a moral.
-        </div>
-
-        <label>Child's Name</label>
-        <input id="childName" placeholder="e.g., Aby" />
-
-        <label>Age</label>
-        <input id="age" type="number" min="2" max="12" placeholder="e.g., 6" />
-
-        <label>Theme (moral)</label>
-        <select id="theme">
-          <option>Kindness</option>
-          <option>Honesty</option>
-          <option>Courage</option>
-          <option>Sharing</option>
-          <option>Gratitude</option>
-        </select>
-
-        <label>Style</label>
-        <select id="style">
-          <option>Calm & Gentle</option>
-          <option>Funny</option>
-          <option>Magical Adventure</option>
-          <option>Animal Friends</option>
-        </select>
-
-        <label>Language</label>
-        <select id="language">
-          <option value="English" selected>English</option>
-          <option value="Hindi">Hindi</option>
-          <option value="Spanish">Spanish</option>
-          <option value="French">French</option>
-          <option value="German">German</option>
-        </select>
-
-        <label>Story Length</label>
-        <select id="length">
-          <option>Short</option>
-          <option selected>Medium</option>
-          <option>Long</option>
-        </select>
-
-        <button id="generateBtn">✨ Generate Story</button>
-
-        <div id="status" class="status"></div>
-      </div>
-
-      <!-- RIGHT: story viewer -->
-      <div class="storybook">
-        <div class="storybook-header">
-          <div class="storybook-title" id="storybookTitle">
-            Your storybook will appear here
-          </div>
-          <div class="storybook-pill" id="storybookPill">
-            Ready for bedtime
+    <div class="app-shell-inner">
+      <div class="brand">
+        <div class="brand-left">
+          <div class="brand-icon">🌙</div>
+          <div>
+            <div class="brand-text">DreamTales – Bedtime Story Maker</div>
+            <div class="brand-subtitle">Magical, personalized stories for cozy nights.</div>
           </div>
         </div>
+        <button id="authBtn" class="auth-btn">Sign in</button>
+      </div>
 
-        <div class="storybook-body">
-          <div class="storybook-page" id="storybookPage">
-            <div class="storybook-placeholder" id="storybookPlaceholder">
-              💫 When you generate a story, it will be displayed here in a book-style view.
-              <br /><br />
-              Page 1 will show a cover illustration when available.
+      <div class="layout">
+        <!-- LEFT: form -->
+        <div class="card">
+          <h1>Create a magical bedtime story</h1>
+          <div class="subtitle">
+            Add your child’s details, choose a moral and story type, and DreamTales will do the rest.
+          </div>
+
+          <label>Child's Name</label>
+          <input id="childName" placeholder="e.g., Aby" />
+
+          <label>Age</label>
+          <input id="age" type="number" min="2" max="12" placeholder="e.g., 6" />
+
+          <label>Theme (moral)</label>
+          <select id="theme">
+            <option>Kindness</option>
+            <option>Honesty</option>
+            <option>Courage</option>
+            <option>Sharing</option>
+            <option>Gratitude</option>
+          </select>
+
+          <label>Style</label>
+          <select id="style">
+            <option>Calm & Gentle</option>
+            <option>Funny</option>
+            <option>Magical Adventure</option>
+            <option>Animal Friends</option>
+          </select>
+
+          <label>Language</label>
+          <select id="language">
+            <option value="English" selected>English</option>
+            <option value="Hindi">Hindi</option>
+            <option value="Spanish">Spanish</option>
+            <option value="French">French</option>
+            <option value="German">German</option>
+          </select>
+
+          <label>Story Type (chapters)</label>
+          <select id="storyType">
+            <option value="short">Short Story (1 gentle chapter)</option>
+            <option value="adventure" selected>Magical Adventure (3 chapters)</option>
+            <option value="epic">Epic Bedtime Tale (6 chapters)</option>
+          </select>
+
+          <button id="generateBtn">✨ Generate Story</button>
+
+          <div id="status" class="status"></div>
+        </div>
+
+        <!-- RIGHT: story viewer -->
+        <div class="storybook">
+          <div class="storybook-header">
+            <div class="storybook-header-left">
+              <button id="homeBtn" class="header-home-btn" type="button">← New story</button>
+              <div class="storybook-title" id="storybookTitle">
+                Your storybook will appear here
+              </div>
+            </div>
+            <div class="storybook-header-right">
+              <button id="listenStoryBtn" class="ghost-btn" disabled>🔊 Listen</button>
+              <button id="musicToggleBtn" class="ghost-btn" disabled>🎵 Music off</button>
+              <div class="storybook-pill" id="storybookPill">
+                Ready for bedtime
+              </div>
+            </div>
+          </div>
+
+          <div class="storybook-body">
+            <div class="storybook-page" id="storybookPage">
+              <div class="storybook-placeholder" id="storybookPlaceholder">
+                💫 When you generate a story, it will be displayed here in a book-style view.
+                <br /><br />
+                After that, the page will switch into a full “reading mode” with audio and music options.
+              </div>
+            </div>
+          </div>
+
+          <div class="moral-box" id="moralBox" style="display:none;">
+            <span class="moral-label">Moral:</span>
+            <span id="moralText"></span>
+          </div>
+
+          <div class="storybook-footer">
+            <span class="badge">
+              Tip: Swipe left or right on the story page (on touch devices) to flip pages.
+            </span>
+
+            <!-- Pager row -->
+            <div class="pager-row">
+              <button id="prevPage" class="pager-btn" disabled>‹ Prev</button>
+              <span id="pageInfo">Page 0 of 0</span>
+              <button id="nextPage" class="pager-btn" disabled>Next ›</button>
+            </div>
+
+            <!-- Actions row -->
+            <div class="actions-row">
+              <button id="downloadPdfBtn" class="primary-btn" disabled>Download PDF</button>
+              <button id="saveStoryBtn" class="secondary-btn" disabled>Save story</button>
             </div>
           </div>
         </div>
+      </div>
 
-        <div class="moral-box" id="moralBox" style="display:none;">
-          <span class="moral-label">Moral:</span>
-          <span id="moralText"></span>
+      <div class="status" style="text-align:center; margin-top:10px;">
+        Private beta – stories are generated with OpenAI and stored only on this device (plus cloud sync for signed-in testers).
+      </div>
+      <div id="authStatus" class="status" style="text-align:center; margin-top:4px;">
+        Sign in to group saved stories under your account (on this device).
+      </div>
+
+      <div id="savedStoriesSection" class="saved-stories">
+        <h2>My saved stories (this device)</h2>
+        <div class="saved-stories-note">
+          Stories are stored in this browser and synced to the cloud for signed-in accounts. Tap a story to reopen it.
         </div>
-
-        <div class="storybook-footer">
-          <span class="badge">Tip: Turn your phone sideways for a wider “storybook” feel.</span>
-
-          <!-- Pager row -->
-          <div class="pager-row">
-            <button id="prevPage" class="pager-btn" disabled>‹ Prev</button>
-            <span id="pageInfo">Page 0 of 0</span>
-            <button id="nextPage" class="pager-btn" disabled>Next ›</button>
-          </div>
-
-          <!-- Actions row -->
-          <div class="actions-row">
-            <button id="listenStoryBtn" class="secondary-btn" disabled>🔊 Listen</button>
-            <button id="downloadPdfBtn" class="primary-btn" disabled>Download PDF</button>
-            <button id="saveStoryBtn" class="secondary-btn" disabled>Save story</button>
-          </div>
+        <div id="savedStoriesList" class="saved-stories-list">
+          <div class="status">No stories saved yet.</div>
         </div>
       </div>
     </div>
-
-    <div id="authStatus" class="status" style="text-align:center; margin-top:4px;">
-      Sign in to group saved stories under your account (on this device).
-    </div>
-
-    <div id="savedStoriesSection" class="saved-stories">
-      <h2>My saved stories (this device)</h2>
-      <div class="saved-stories-note">
-        Stories are stored in this browser and synced to the cloud for signed-in accounts.
-      </div>
-      <div id="savedStoriesList" class="saved-stories-list">
-        <div class="status">No stories saved yet.</div>
-      </div>
-    </div>
-
-    <form
-      name="DreamTalez-feedback"
-      method="POST"
-      data-netlify="true"
-      class="feedback"
-    >
-      <h2>Share quick feedback</h2>
-      <div class="feedback-note">
-        This form sends feedback privately to the creator so DreamTalez can improve.
-      </div>
-
-      <input type="hidden" name="form-name" value="DreamTalez-feedback" />
-
-      <label>
-        Your name (optional)
-        <input type="text" name="name" />
-      </label>
-
-      <label>
-        How was your experience?
-        <select name="rating">
-          <option value="5">⭐⭐⭐⭐⭐ Loved it</option>
-          <option value="4">⭐⭐⭐⭐ Good</option>
-          <option value="3">⭐⭐⭐ Okay</option>
-          <option value="2">⭐⭐ Needs improvement</option>
-          <option value="1">⭐ Not great</option>
-        </select>
-      </label>
-
-      <label>
-        Comments or ideas for improvement
-        <textarea name="comments" placeholder="What worked well? What would you change?"></textarea>
-      </label>
-
-      <button type="submit" class="secondary-btn" style="margin-top:10px;">
-        Send feedback
-      </button>
-    </form>
   </div>
+
+  <!-- Background music element (you can point src to your own MP3s in JS) -->
+  <audio id="bgMusic" loop preload="auto"></audio>
 
   <!-- Netlify Identity widget -->
   <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
@@ -666,24 +764,28 @@
     let touchStartY = 0;
     let touchStartTime = 0;
 
-    // audio state
+    // audio state (speech)
     let isSpeaking = false;
     let currentUtterance = null;
     let ttsVoices = [];
-    let audioSegments = [];
-    let audioSegmentIndex = 0;
-    let currentWordInfos = []; // { start, end, span }
+
+    // background music state
+    let musicEnabled = false;
+    let currentMusicMode = "ambience"; // "ambience" or "lullaby"
 
     // metadata for the current story
     let lastChildName = "";
     let lastAge = "";
     let lastTheme = "";
     let lastStyle = "";
-    let lastLength = "";
+    let lastStoryType = "adventure";
     let lastLanguage = "English";
+    let sentencesPerPage = 4;
 
-    // saved stories (local representation)
+    // saved stories
     let savedStories = [];
+
+    const appShell = document.querySelector(".app-shell");
 
     const btn = document.getElementById("generateBtn");
     const statusEl = document.getElementById("status");
@@ -703,12 +805,12 @@
     const downloadPdfBtn = document.getElementById("downloadPdfBtn");
     const languageSelect = document.getElementById("language");
     const listenStoryBtn = document.getElementById("listenStoryBtn");
-    const personalizationCard = document.getElementById("personalizationCard");
-    const savedStoriesSectionEl = document.getElementById("savedStoriesSection");
-    const feedbackForm = document.querySelector("form[name='DreamTalez-feedback']");
-    const backHomeBtn = document.getElementById("backHomeBtn");
+    const musicToggleBtn = document.getElementById("musicToggleBtn");
+    const homeBtn = document.getElementById("homeBtn");
+    const storyTypeSelect = document.getElementById("storyType");
+    const bgMusicEl = document.getElementById("bgMusic");
 
-    // ---- Speech synthesis voice handling ----
+    // ---- Speech synthesis voices ----
     function loadVoices() {
       if (!("speechSynthesis" in window)) return;
       ttsVoices = window.speechSynthesis.getVoices();
@@ -732,7 +834,7 @@
       if (user) {
         userId = user.id || user.email || "guest";
       }
-      return "DreamTalez_stories_" + userId;
+      return "dreamtales_stories_" + userId;
     }
 
     function loadStoriesFromStorage() {
@@ -765,7 +867,7 @@
         age: s.age,
         theme: s.theme,
         style: s.style,
-        length: s.length,
+        length: s.length, // story type label
         createdAt: s.created_at,
         pages: s.pages,
         moral: s.moral,
@@ -778,7 +880,7 @@
       if (!user) {
         throw new Error("Not signed in");
       }
-      const token = await user.jwt(); // Netlify Identity JWT
+      const token = await user.jwt();
 
       const res = await fetch("/.netlify/functions/cloud-stories", {
         method,
@@ -806,7 +908,6 @@
     async function loadCloudStoriesForUser() {
       const user = getCurrentIdentityUser();
       if (!user) {
-        // fall back to local-only for guests
         loadStoriesFromStorage();
         return;
       }
@@ -824,30 +925,6 @@
         statusEl.textContent = "Using local stories (cloud fetch failed)";
         loadStoriesFromStorage();
       }
-    }
-
-    // ---------- Reading mode toggle ----------
-
-    function enterReadingMode() {
-      if (personalizationCard) personalizationCard.style.display = "block"; // you can change to "none" if you want it hidden
-      if (authStatus) authStatus.style.display = "block";
-      if (savedStoriesSectionEl) savedStoriesSectionEl.style.display = "block";
-      if (feedbackForm) feedbackForm.style.display = "block";
-      if (backHomeBtn) backHomeBtn.style.display = "none";
-      // NOTE: if you want full-screen book, flip the above display flags
-    }
-
-    function exitReadingMode() {
-      stopStoryAudio();
-      if (personalizationCard) personalizationCard.style.display = "block";
-      if (authStatus) authStatus.style.display = "block";
-      if (savedStoriesSectionEl) savedStoriesSectionEl.style.display = "block";
-      if (feedbackForm) feedbackForm.style.display = "block";
-      if (backHomeBtn) backHomeBtn.style.display = "none";
-    }
-
-    if (backHomeBtn) {
-      backHomeBtn.addEventListener("click", exitReadingMode);
     }
 
     // ---------- UI render functions ----------
@@ -869,47 +946,34 @@
         item.className = "saved-story-item";
         item.dataset.id = story.id;
 
-        // Top row: title + delete button
-        const headerRow = document.createElement("div");
-        headerRow.className = "saved-story-header";
-
         const titleSpan = document.createElement("span");
-        titleSpan.textContent =
-          story.title || `Story for ${story.childName || "child"}`;
-
-        const deleteBtn = document.createElement("button");
-        deleteBtn.type = "button";
-        deleteBtn.className = "delete-story-btn";
-        deleteBtn.textContent = "✕";
-
-        deleteBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          const ok = confirm("Delete this saved story?");
-          if (!ok) return;
-
-          savedStories = savedStories.filter(s => s.id !== story.id);
-          saveStoriesToStorage();
-          renderSavedStories();
-        });
-
-        headerRow.appendChild(titleSpan);
-        headerRow.appendChild(deleteBtn);
+        titleSpan.textContent = story.title || `Story for ${story.childName || "child"}`;
 
         const metaSpan = document.createElement("span");
         metaSpan.className = "saved-story-meta";
         const date = story.createdAt ? new Date(story.createdAt) : null;
         const dateStr = date ? date.toLocaleDateString() : "";
+        const typeLabel = story.length || "";
         metaSpan.textContent =
           `${story.childName || "Child"} • ${story.theme || ""}` +
-          (story.language ? ` • ${story.language}` : "") +
+          (typeLabel ? ` • ${typeLabel}` : "") +
           (dateStr ? ` • ${dateStr}` : "");
 
-        item.appendChild(headerRow);
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "Delete";
+        deleteBtn.className = "delete-btn";
+        deleteBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          deleteStory(story.id);
+        });
+
+        item.appendChild(titleSpan);
         item.appendChild(metaSpan);
+        item.appendChild(deleteBtn);
 
         item.addEventListener("click", () => {
           loadStoryIntoViewer(story.id);
-          enterReadingMode();
+          enterStoryMode();
         });
 
         savedStoriesList.appendChild(item);
@@ -927,6 +991,7 @@
         saveStoryBtn.disabled = true;
         if (downloadPdfBtn) downloadPdfBtn.disabled = true;
         if (listenStoryBtn) listenStoryBtn.disabled = true;
+        if (musicToggleBtn) musicToggleBtn.disabled = true;
         return;
       }
 
@@ -970,6 +1035,7 @@
       saveStoryBtn.disabled = !hasStory;
       if (downloadPdfBtn) downloadPdfBtn.disabled = !hasStory;
       if (listenStoryBtn) listenStoryBtn.disabled = !hasStory;
+      if (musicToggleBtn) musicToggleBtn.disabled = !hasStory;
     }
 
     function loadStoryIntoViewer(storyId) {
@@ -985,14 +1051,20 @@
       lastAge = story.age || "";
       lastTheme = story.theme || "";
       lastStyle = story.style || "";
-      lastLength = story.length || "";
-      lastLanguage = story.language || "English";
+      lastStoryType = story.length || "adventure";
 
       titleEl.textContent = story.title || `Bedtime story for ${lastChildName || "your child"}`;
       pillEl.textContent = `${story.theme || "Story"} • ${story.style || ""}`;
 
       renderPage();
       statusEl.textContent = "Loaded saved story.";
+    }
+
+    function deleteStory(id) {
+      savedStories = savedStories.filter(s => s.id !== id);
+      saveStoriesToStorage();
+      renderSavedStories();
+      statusEl.textContent = "Story deleted.";
     }
 
     // ---------- navigation & swipe ----------
@@ -1055,21 +1127,36 @@
       storybookBodyEl.addEventListener("touchend", handleTouchEnd, { passive: true });
     }
 
-    function sentenceRangeForLength(length) {
-      if (length === "Short") return "4–6 sentences";
-      if (length === "Long") return "14–20 sentences";
-      return "8–12 sentences";
+    // ---------- Story type config (chapters) ----------
+
+    function storyConfigForType(type) {
+      // Returns sentence range and sentences per page
+      switch (type) {
+        case "short":
+          return {
+            label: "Short Story (1 chapter)",
+            sentenceRange: "4–6 sentences",
+            perPage: 6
+          };
+        case "epic":
+          return {
+            label: "Epic Bedtime Tale (6 chapters)",
+            sentenceRange: "18–24 sentences",
+            perPage: 4
+          };
+        case "adventure":
+        default:
+          return {
+            label: "Magical Adventure (3 chapters)",
+            sentenceRange: "10–16 sentences",
+            perPage: 4
+          };
+      }
     }
 
-    // Group sentences into pages depending on story length
-    function chunkSentencesIntoPages(sentences, length) {
+    function chunkSentencesIntoPages(sentences) {
       if (!sentences || !sentences.length) return [];
-
-      let perPage;
-      if (length === "Short") perPage = sentences.length;   // usually 1 page
-      else if (length === "Long") perPage = 3;              // more pages
-      else perPage = 4;                                     // Medium
-
+      const perPage = sentencesPerPage || 4;
       const pages = [];
       for (let i = 0; i < sentences.length; i += perPage) {
         pages.push(sentences.slice(i, i + perPage));
@@ -1083,10 +1170,20 @@
       if (!storyPages.length) return null;
 
       const headerLines = [];
-      if (lastChildName) headerLines.push(`Child: ${lastChildName}${lastAge ? " (age " + lastAge + ")" : ""}`);
-      if (lastTheme || lastStyle) headerLines.push(`Theme: ${lastTheme || ""} | Style: ${lastStyle || ""}`);
-      if (lastLength) headerLines.push(`Length: ${lastLength}`);
-      if (lastLanguage) headerLines.push(`Language: ${lastLanguage}`);
+      if (lastChildName) {
+        headerLines.push(
+          `Child: ${lastChildName}${lastAge ? " (age " + lastAge + ")" : ""}`
+        );
+      }
+      if (lastTheme || lastStyle) {
+        headerLines.push(`Theme: ${lastTheme || ""} | Style: ${lastStyle || ""}`);
+      }
+      if (lastStoryType) {
+        headerLines.push(`Story Type: ${lastStoryType}`);
+      }
+      if (lastLanguage) {
+        headerLines.push(`Language: ${lastLanguage}`);
+      }
 
       const paragraphs = storyPages
         .map(page => page.join(" ").trim())
@@ -1129,7 +1226,7 @@
       function drawHeader() {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(16);
-        doc.text("DreamTalez – Bedtime Story Maker", marginX, y);
+        doc.text("DreamTales – Bedtime Story Maker", marginX, y);
         y += 22;
 
         doc.setFont("helvetica", "normal");
@@ -1187,7 +1284,7 @@
 
       drawFooter();
 
-      const safeName = lastChildName ? `DreamTalez_${lastChildName}.pdf` : "DreamTalez_story.pdf";
+      const safeName = lastChildName ? `dreamtales_${lastChildName}.pdf` : "dreamtales_story.pdf";
       doc.save(safeName);
       statusEl.textContent = "Story downloaded as PDF ✔";
     }
@@ -1196,7 +1293,7 @@
       downloadPdfBtn.addEventListener("click", downloadStoryPdf);
     }
 
-    // ---------- AUDIO (browser SpeechSynthesis) with word highlight ----------
+    // ---------- AUDIO (browser SpeechSynthesis) ----------
 
     function getLanguageCode(language) {
       switch (language) {
@@ -1213,92 +1310,21 @@
       }
     }
 
-    function getAudioSegments() {
-      const segments = [];
-      if (!storyPages.length) return segments;
+    function getStoryTextForAudio() {
+      if (!storyPages.length) return "";
 
-      storyPages.forEach((page, idx) => {
+      const storyLines = [];
+      storyPages.forEach(page => {
         const text = page.join(" ").trim();
-        if (text) {
-          segments.push({ pageIndex: idx, text });
-        }
+        if (text) storyLines.push(text);
       });
 
       if (currentMoralLine) {
-        segments.push({
-          pageIndex: storyPages.length - 1,
-          text: currentMoralLine
-        });
+        storyLines.push("");
+        storyLines.push(currentMoralLine);
       }
 
-      return segments;
-    }
-
-    function clearWordHighlight() {
-      currentWordInfos.forEach(info => {
-        if (info.span) info.span.classList.remove("story-word-highlight");
-      });
-    }
-
-    function buildWordSpansForSegment(segText) {
-      currentWordInfos = [];
-      pageEl.innerHTML = "";
-      const p = document.createElement("p");
-      pageEl.appendChild(p);
-
-      const text = segText;
-      const regex = /\S+/g;
-      let match;
-      let lastIndex = 0;
-      let idx = 0;
-
-      while ((match = regex.exec(text)) !== null) {
-        const spaces = text.slice(lastIndex, match.index);
-        if (spaces) {
-          p.appendChild(document.createTextNode(spaces));
-        }
-
-        const span = document.createElement("span");
-        span.textContent = match[0];
-        span.dataset.wordIndex = idx;
-        p.appendChild(span);
-
-        currentWordInfos.push({
-          start: match.index,
-          end: match.index + match[0].length,
-          span
-        });
-
-        lastIndex = match.index + match[0].length;
-        idx++;
-      }
-
-      const tail = text.slice(lastIndex);
-      if (tail) {
-        p.appendChild(document.createTextNode(tail));
-      }
-    }
-
-    function highlightWordAtCharIndex(charIndex) {
-      if (!currentWordInfos || !currentWordInfos.length) return;
-      // find last word whose start <= charIndex
-      let activeIndex = 0;
-      for (let i = 0; i < currentWordInfos.length; i++) {
-        if (currentWordInfos[i].start <= charIndex) {
-          activeIndex = i;
-        } else {
-          break;
-        }
-      }
-      currentWordInfos.forEach((info, i) => {
-        if (info.span) {
-          if (i === activeIndex) {
-            info.span.classList.add("story-word-highlight");
-          } else {
-            info.span.classList.remove("story-word-highlight");
-          }
-        }
-      });
+      return storyLines.join("\n");
     }
 
     async function speakStory() {
@@ -1307,114 +1333,61 @@
         return;
       }
 
-      const segments = getAudioSegments();
-      if (!segments.length) return;
+      const text = getStoryTextForAudio();
+      if (!text) return;
 
       const langCode = getLanguageCode(lastLanguage || "English");
       window.speechSynthesis.cancel();
 
-      // If voices aren’t loaded yet, wait a moment and try again
       if (!ttsVoices.length) {
         await new Promise(resolve => setTimeout(resolve, 250));
         ttsVoices = window.speechSynthesis.getVoices();
       }
 
-      // Choose voice
-      let chosenVoice = null;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = langCode;
+      utterance.rate = 0.95;
+
       if (ttsVoices && ttsVoices.length) {
         const base = langCode.split("-")[0];
-        chosenVoice =
+        const match =
           ttsVoices.find(v => v.lang && v.lang.startsWith(langCode)) ||
           ttsVoices.find(v => v.lang && v.lang.startsWith(base));
 
-        if (!chosenVoice) {
-          chosenVoice = ttsVoices[0];
-          statusEl.textContent =
-            "No native voice for this language on this device – using a fallback voice.";
+        if (match) {
+          utterance.voice = match;
         }
       }
 
-      audioSegments = segments;
-      audioSegmentIndex = 0;
+      utterance.onstart = () => {
+        isSpeaking = true;
+        if (listenStoryBtn) listenStoryBtn.textContent = "⏹ Stop audio";
+      };
+      utterance.onend = () => {
+        isSpeaking = false;
+        if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
+      };
+      utterance.onerror = (e) => {
+        console.error("Speech synthesis error:", e);
+        isSpeaking = false;
+        if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
+        statusEl.textContent = "Audio could not start. Try again or switch browser/device.";
+      };
 
-      function playNextSegment() {
-        if (audioSegmentIndex >= audioSegments.length) {
-          isSpeaking = false;
-          clearWordHighlight();
-          if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
-          return;
-        }
-
-        const seg = audioSegments[audioSegmentIndex];
-
-        // Navigate to relevant page
-        if (
-          typeof seg.pageIndex === "number" &&
-          seg.pageIndex >= 0 &&
-          seg.pageIndex < storyPages.length
-        ) {
-          currentPageIndex = seg.pageIndex;
-          // We re-render in a simple "single paragraph" form for the audio segment
-          buildWordSpansForSegment(seg.text);
-        }
-
-        const utterance = new SpeechSynthesisUtterance(seg.text);
-        utterance.lang = langCode;
-        utterance.rate = 0.9;
-        utterance.pitch = 1.0;
-
-        if (chosenVoice) {
-          utterance.voice = chosenVoice;
-        }
-
-        utterance.onstart = () => {
-          isSpeaking = true;
-          if (listenStoryBtn) listenStoryBtn.textContent = "⏹ Stop audio";
-        };
-
-        utterance.onboundary = (event) => {
-          if (typeof event.charIndex === "number") {
-            highlightWordAtCharIndex(event.charIndex);
-          }
-        };
-
-        utterance.onend = () => {
-          clearWordHighlight();
-          audioSegmentIndex++;
-          playNextSegment();
-        };
-
-        utterance.onerror = (e) => {
-          console.error("Speech synthesis error:", e);
-          isSpeaking = false;
-          clearWordHighlight();
-          if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
-          statusEl.textContent = "Audio could not start. Try again or switch browser/device.";
-        };
-
-        currentUtterance = utterance;
-        window.speechSynthesis.speak(utterance);
-      }
-
-      playNextSegment();
+      currentUtterance = utterance;
+      window.speechSynthesis.speak(utterance);
     }
 
     function stopStoryAudio() {
       if (!("speechSynthesis" in window)) return;
       window.speechSynthesis.cancel();
       isSpeaking = false;
-      audioSegments = [];
-      audioSegmentIndex = 0;
-      clearWordHighlight();
-      if (listenStoryBtn) {
-        listenStoryBtn.textContent = "🔊 Listen";
-      }
+      if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
     }
 
     if (listenStoryBtn) {
       listenStoryBtn.addEventListener("click", () => {
         if (!storyPages.length) return;
-
         if (isSpeaking) {
           stopStoryAudio();
         } else {
@@ -1422,6 +1395,52 @@
             console.error("Error starting audio:", err);
             statusEl.textContent = "Audio could not start. Try again.";
           });
+        }
+      });
+    }
+
+    // ---------- Background music (using <audio>) ----------
+
+    function ensureMusicSource() {
+      if (!bgMusicEl) return;
+      // TODO: Replace these with your own hosted MP3 URLs
+      // For now, both modes point to the same placeholder file path.
+      if (currentMusicMode === "lullaby") {
+        bgMusicEl.src = "/audio/gentle-lullaby.mp3";
+      } else {
+        bgMusicEl.src = "/audio/deep-night-ambience.mp3";
+      }
+    }
+
+    function startBackgroundMusic() {
+      if (!bgMusicEl) return;
+      ensureMusicSource();
+      bgMusicEl.volume = 0.35;
+      const playPromise = bgMusicEl.play();
+      if (playPromise && typeof playPromise.then === "function") {
+        playPromise.catch(err => {
+          console.warn("Background music could not autoplay:", err);
+          statusEl.textContent = "Tap Music again to start background audio.";
+        });
+      }
+    }
+
+    function stopBackgroundMusic() {
+      if (!bgMusicEl) return;
+      bgMusicEl.pause();
+    }
+
+    if (musicToggleBtn) {
+      musicToggleBtn.addEventListener("click", () => {
+        if (!storyPages.length) return;
+
+        musicEnabled = !musicEnabled;
+        if (musicEnabled) {
+          startBackgroundMusic();
+          musicToggleBtn.textContent = "🎵 Music on";
+        } else {
+          stopBackgroundMusic();
+          musicToggleBtn.textContent = "🎵 Music off";
         }
       });
     }
@@ -1441,7 +1460,7 @@
         age: lastAge,
         theme: lastTheme,
         style: lastStyle,
-        length: lastLength,
+        length: storyConfigForType(lastStoryType).label,
         createdAt: new Date().toISOString(),
         pages: storyPages,
         moral: currentMoralLine,
@@ -1465,7 +1484,7 @@
         age: lastAge,
         theme: lastTheme,
         style: lastStyle,
-        length: lastLength,
+        length: storyConfigForType(lastStoryType).label,
         moral: currentMoralLine,
         pages: storyPages,
         coverImageUrl
@@ -1496,9 +1515,33 @@
       });
     }
 
+    // ---------- story mode helpers ----------
+
+    function enterStoryMode() {
+      if (!appShell) return;
+      appShell.classList.add("story-mode");
+    }
+
+    function exitStoryMode() {
+      if (!appShell) return;
+      appShell.classList.remove("story-mode");
+      stopStoryAudio();
+      stopBackgroundMusic();
+      musicEnabled = false;
+      if (musicToggleBtn) musicToggleBtn.textContent = "🎵 Music off";
+      statusEl.textContent = "Ready for a new bedtime story.";
+    }
+
+    if (homeBtn) {
+      homeBtn.addEventListener("click", () => {
+        exitStoryMode();
+      });
+    }
+
     // ---------- story generation (images parked) ----------
 
     async function generateCoverIllustration(childName, age, theme, illustrationPrompts) {
+      // parked for now – not called in this release
       return;
     }
 
@@ -1507,8 +1550,8 @@
       const age = document.getElementById("age").value.trim();
       const theme = document.getElementById("theme").value;
       const style = document.getElementById("style").value;
-      const length = document.getElementById("length").value;
       const language = languageSelect ? languageSelect.value : "English";
+      const storyType = storyTypeSelect ? storyTypeSelect.value : "adventure";
 
       if (!childName || !age) {
         alert("Please enter the child's name and age.");
@@ -1516,22 +1559,30 @@
       }
 
       stopStoryAudio();
+      stopBackgroundMusic();
+      musicEnabled = false;
+      if (musicToggleBtn) musicToggleBtn.textContent = "🎵 Music off";
 
       lastChildName = childName;
       lastAge = age;
       lastTheme = theme;
       lastStyle = style;
-      lastLength = length;
       lastLanguage = language;
+      lastStoryType = storyType;
+
+      const config = storyConfigForType(storyType);
+      const range = config.sentenceRange;
+      sentencesPerPage = config.perPage;
 
       btn.disabled = true;
       saveStoryBtn.disabled = true;
       if (downloadPdfBtn) downloadPdfBtn.disabled = true;
       if (listenStoryBtn) listenStoryBtn.disabled = true;
+      if (musicToggleBtn) musicToggleBtn.disabled = true;
 
       statusEl.textContent = "Creating a magical story...";
       titleEl.textContent = "Writing a story for " + childName + "…";
-      pillEl.textContent = `${theme} • ${style} • ${language}`;
+      pillEl.textContent = `${theme} • ${style} • ${config.label}`;
 
       storyPages = [];
       currentPageIndex = 0;
@@ -1540,9 +1591,6 @@
       coverImageUrl = null;
       renderPage();
 
-      const range = sentenceRangeForLength(length);
-      const variationTag = Math.random().toString(36).slice(2, 8);
-
       const userContent = `
 Create a bedtime story for a child.
 
@@ -1550,7 +1598,7 @@ Child's Name: ${childName}
 Age: ${age}
 Theme (moral): ${theme}
 Style: ${style}
-Length: ${length}
+Story Type: ${config.label}
 Target language: ${language}
 
 Rules:
@@ -1562,7 +1610,6 @@ Rules:
 6. Write the main story in ${range}, as one continuous block of text. Do not label the sentences.
 7. At the end, write one clear sentence that explains the lesson of the story. This sentence MUST start with the English label 'Moral:' followed by a space, and then the moral sentence in the target language.
 8. After the moral, add a new section titled 'Illustration Prompts:' and list 4 bullet-point prompts describing key scenes for an illustrator or image model.
-9. Internally, use this variation tag to make each story slightly different, even when inputs are the same: ${variationTag}. Do NOT mention or show this tag in the story.
 `.trim();
 
       try {
@@ -1622,7 +1669,7 @@ Rules:
           .map(s => s.trim())
           .filter(s => s.length > 0);
 
-        storyPages = chunkSentencesIntoPages(sentences, length);
+        storyPages = chunkSentencesIntoPages(sentences);
 
         currentMoralLine = moralLine;
         currentIllustrationPrompts = illustrationPrompts;
@@ -1631,13 +1678,15 @@ Rules:
 
         titleEl.textContent = "Bedtime story for " + childName;
         statusEl.textContent =
-          "Story ready ✨ (text, audio, and PDFs are available.)";
+          "Story ready ✨ Enjoy reading, listening to the audio, or downloading the PDF.";
 
         saveStoryBtn.disabled = false;
         if (downloadPdfBtn) downloadPdfBtn.disabled = false;
         if (listenStoryBtn) listenStoryBtn.disabled = false;
+        if (musicToggleBtn) musicToggleBtn.disabled = false;
 
-        enterReadingMode();
+        enterStoryMode();
+
       } catch (err) {
         console.error(err);
         statusEl.textContent = "Something went wrong: " + err.message;
@@ -1709,4 +1758,3 @@ Rules:
   </script>
 </body>
 </html>
-
