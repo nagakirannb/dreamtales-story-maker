@@ -720,6 +720,9 @@
             <div class="actions-row">
               <button id="downloadPdfBtn" class="primary-btn" disabled>Download PDF</button>
               <button id="saveStoryBtn" class="secondary-btn" disabled>Save story</button>
+              <button id="feedbackBtn" class="ghost-btn" type="button">
+              💬 Give feedback
+            </button>
             </div>
           </div>
         </div>
@@ -1755,6 +1758,21 @@ Rules:
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("service-worker.js").catch(console.error);
     }
+   
+    // ---------- Feedback button (Google Form) ----------
+
+    const feedbackBtn = document.getElementById("feedbackBtn");
+
+    // Replace this with your actual Google Form link:
+    const FEEDBACK_FORM_URL = "https://docs.google.com/forms/d/1Fq94O9JP0LOSDo3YjScjwVvvtcc1Ji76TIc1giiOvb0/edit";
+
+    if (feedbackBtn) {
+    feedbackBtn.addEventListener("click", () => {
+    window.open(FEEDBACK_FORM_URL, "_blank", "noopener");
+  });
+}
+
   </script>
 </body>
 </html>
+
