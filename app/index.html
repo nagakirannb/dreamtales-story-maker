@@ -1423,50 +1423,61 @@
     }
 
     async function fetchTtsAudio() {
-      const text = getStoryTextForTts();
-      if (!text) throw new Error("No story text available for audio.");
+            const text = getStoryTextForTts();
+            if (!text) throw new Error("No story text available for audio.");
+          
+            const langCode = getLanguageCode(lastLanguage || "English");
+          
+            const res = await fetch("/.netlify/functions/tts", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                text,
+                languageCode: langCode
+              })
+            });
+          
+            if (!res.ok) {
+              let msg = "TTS error";
+              try {
+                const errJson = await res.json();
+                msg = errJson.error || JSON.stringify(errJson);
+              } catch {
+                msg = res.statusText || msg;
+              }
+              throw new Error(msg);
+            }
+          
+            const contentType = (res.headers.get("content-type") || "").toLowerCase();
+            let blob;
+          
+            if (contentType.includes("application/json")) {
+              // Our Netlify function is returning JSON with base64 audio
+              const data = await res.json();
+              if (!data.audio) {
+                throw new Error("No 'audio' field in TTS JSON response");
+              }
+          
+              const byteChars = atob(data.audio);
+              const byteNumbers = new Array(byteChars.length);
+              for (let i = 0; i < byteChars.length; i++) {
+                byteNumbers[i] = byteChars.charCodeAt(i);
+              }
+              const byteArray = new Uint8Array(byteNumbers);
+              blob = new Blob([byteArray], { type: "audio/mpeg" });
+            } else {
+              // Fallback: function is streaming raw MP3 bytes
+              const audioBuffer = await res.arrayBuffer();
+              blob = new Blob([audioBuffer], { type: "audio/mpeg" });
+            }
+          
+            if (storyAudioUrl) {
+              URL.revokeObjectURL(storyAudioUrl);
+            }
+            storyAudioUrl = URL.createObjectURL(blob);
+            storyAudioEl.src = storyAudioUrl;
+          }
 
-      const langCode = getLanguageCode(lastLanguage || "English");
-
-      const res = await fetch("/.netlify/functions/tts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text,
-          languageCode: langCode
-        })
-      });
-
-      if (!res.ok) {
-        let msg = "TTS error";
-        try {
-          const err = await res.json();
-          msg = err.error || JSON.stringify(err);
-        } catch {
-          msg = res.statusText || msg;
-        }
-        throw new Error(msg);
-      }
-
-      const data = await res.json();
-      if (!data.audio) {
-        throw new Error("No audio field in TTS response");
-      }
-
-      const byteChars = atob(data.audio);
-      const byteNumbers = new Array(byteChars.length);
-      for (let i = 0; i < byteChars.length; i++) {
-        byteNumbers[i] = byteChars.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: "audio/mpeg" });
-
-      if (storyAudioUrl) {
-        URL.revokeObjectURL(storyAudioUrl);
-      }
-      storyAudioUrl = URL.createObjectURL(blob);
-      storyAudioEl.src = storyAudioUrl;
-    }
 
     if (storyAudioEl) {
       storyAudioEl.addEventListener("ended", () => {
@@ -1851,3 +1862,4 @@ Rules:
   </script>
 </body>
 </html>
+
