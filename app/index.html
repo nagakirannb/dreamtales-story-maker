@@ -595,6 +595,21 @@
         max-width: 100%;
       }
     }
+    .music-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: #9ca3af;
+        cursor: pointer;
+        user-select: none;
+      }
+
+        .music-toggle input[type="checkbox"] {
+          accent-color: #fbbf24; /* soft gold */
+          cursor: pointer;
+        }
+
   </style>
 </head>
 <body>
@@ -708,7 +723,15 @@
             </div>
 
             <div class="actions-row">
+              <!-- NEW: Listen button -->
+              <button id="listenStoryBtn" class="secondary-btn" disabled>🔊 Listen</button>
+
               <button id="downloadPdfBtn" class="primary-btn" disabled>Download PDF</button>
+                        <!-- NEW: background music toggle -->
+                            <label class="music-toggle">
+                            <input type="checkbox" id="musicToggle" checked />
+                            <span>Background music</span>
+                        </label>
               <button id="saveStoryBtn" class="secondary-btn" disabled>Save story</button>
               <button id="feedbackBtn" class="ghost-btn" type="button">
                 💬 Give feedback
@@ -802,6 +825,80 @@
     const storyTypeSelect = document.getElementById("storyType");
     const bgMusicEl = document.getElementById("bgMusic");
     const storyAudioEl = document.getElementById("storyAudio");
+    const musicToggle = document.getElementById("musicToggle");
+
+      // background music
+      let bgMusic = null;
+      let isBgMusicReady = false;
+              
+    // --- Background Music Setup ---
+          let bgMusic = new Audio("/music/soft-lullaby.mp3");
+          bgMusic.loop = true;
+          bgMusic.volume = 0.35;  // softly under narration
+          
+          const musicToggle = document.getElementById("musicToggle");
+          if (musicToggle) {
+            // default ON
+            musicToggle.checked = true;
+          
+            bgMusic.addEventListener("canplaythrough", () => {
+              if (musicToggle.checked) bgMusic.play().catch(() => {});
+            });
+          
+            musicToggle.addEventListener("change", () => {
+              if (musicToggle.checked) {
+                bgMusic.play().catch(() => {});
+              } else {
+                bgMusic.pause();
+              }
+            });
+          }
+          
+          // Always stop music when TTS is playing
+          function pauseMusicDuringTts() {
+            if (!bgMusic) return;
+            bgMusic.pause();
+          }
+
+function resumeMusicAfterTts() {
+  if (!bgMusic) return;
+  if (musicToggle.checked) bgMusic.play().catch(() => {});
+}
+
+    
+    // Initialize background music (gentle lullaby loop)
+      function initBackgroundMusic() {
+        if (bgMusic) return;
+      
+        bgMusic = new Audio(
+          "https://cdn.pixabay.com/download/audio/2022/03/15/audio_08d9b5fb90.mp3?filename=lullaby-ambient-21941.mp3"
+        );
+        bgMusic.loop = true;
+        bgMusic.volume = 0.25; // 0–1; tweak to taste
+        isBgMusicReady = true;
+      }
+      
+      // call once on load so it's ready when the user first listens
+      initBackgroundMusic();
+
+      function startBackgroundMusic() {
+                  if (!bgMusic || !isBgMusicReady) return;
+                  if (!musicToggle || !musicToggle.checked) return;
+                
+                  bgMusic
+                    .play()
+                    .catch((err) => {
+                      console.warn("Could not start background music:", err);
+                    });
+                }
+
+        function stopBackgroundMusic() {
+          if (!bgMusic) return;
+          bgMusic.pause();
+          bgMusic.currentTime = 0;
+        }
+
+
 
     // ---------- helpers for auth + storage ----------
 
@@ -1382,37 +1479,66 @@
     }
 
     if (listenStoryBtn) {
-      listenStoryBtn.addEventListener("click", async () => {
-        if (!storyPages.length || isTtsLoading) return;
+  listenStoryBtn.addEventListener("click", async () => {
+    if (!storyPages.length || isTtsLoading) return;
 
-        // toggle off
-        if (isTtsPlaying) {
-          stopStoryAudio();
-          return;
-        }
-
-        try {
-          isTtsLoading = true;
-          listenStoryBtn.textContent = "⏳ Preparing audio...";
-          statusEl.textContent = "Preparing high-quality bedtime audio...";
-
-          if (!storyAudioEl.src) {
-            await fetchTtsAudio();
-          }
-
-          await storyAudioEl.play();
-          isTtsPlaying = true;
-          listenStoryBtn.textContent = "⏹ Stop audio";
-          statusEl.textContent = "Listening mode: story audio is playing.";
-        } catch (err) {
-          console.error("TTS play error", err);
-          statusEl.textContent = "Audio could not start: " + err.message;
-          listenStoryBtn.textContent = "🔊 Listen";
-        } finally {
-          isTtsLoading = false;
-        }
-      });
+    // Toggle off
+    if (isTtsPlaying) {
+      stopStoryAudio();
+      resumeMusicAfterTts();
+      
+      return;
     }
+
+    try {
+      isTtsLoading = true;
+      listenStoryBtn.textContent = "⏳ Preparing audio...";
+      statusEl.textContent = "Preparing high-quality bedtime audio...";
+
+      pauseMusicDuringTts();  // <<<<<< NEW
+
+      if (!storyAudioEl.src) {
+        await fetchTtsAudio();
+      }
+
+      await storyAudioEl.play();
+      isTtsPlaying = true;
+
+      listenStoryBtn.textContent = "⏹ Stop audio";
+      statusEl.textContent = "Listening mode: story audio is playing.";
+
+      storyAudioEl.onended = () => {
+        isTtsPlaying = false;
+        listenStoryBtn.textContent = "🔊 Listen";
+        resumeMusicAfterTts();   // <<<<<< NEW
+      };
+
+    } catch (err) {
+      console.error("TTS play error", err);
+      statusEl.textContent = "Audio could not start: " + err.message;
+      listenStoryBtn.textContent = "🔊 Listen";
+      resumeMusicAfterTts();  // fall back
+    } finally {
+      isTtsLoading = false;
+    }
+  });
+}
+
+        if (musicToggle) {
+          musicToggle.addEventListener("change", () => {
+            if (!musicToggle.checked) {
+              // user turned music off
+              stopBackgroundMusic();
+            } else {
+              // user turned it on while TTS is already playing
+              // if your TTS audio is currently playing, start music
+              // adapt `isTtsPlaying` to whatever flag you use
+              if (typeof isTtsPlaying !== "undefined" && isTtsPlaying) {
+                startBackgroundMusic();
+              }
+            }
+          });
+        }
 
     // ---------- Background music ----------
 
@@ -1785,3 +1911,4 @@ Rules:
   </script>
 </body>
 </html>
+
