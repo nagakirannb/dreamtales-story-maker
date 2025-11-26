@@ -1,7 +1,9 @@
 // netlify/functions/tts.js
-// Serverless function to call OpenAI TTS and return base64 MP3
+const OpenAI = require("openai");
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -11,77 +13,46 @@ exports.handler = async (event) => {
     };
   }
 
-  if (!OPENAI_API_KEY) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Missing OPENAI_API_KEY environment variable" }),
-    };
-  }
-
-  let payload;
   try {
-    payload = JSON.parse(event.body || "{}");
-  } catch (e) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: "Invalid JSON body" }),
-    };
-  }
+    const body = JSON.parse(event.body || "{}");
+    const text = body.text;
+    const language = body.language || "en-US";
+    const voice = body.voice || "alloy";
 
-  const text = (payload.text || "").trim();
-  const languageCode = payload.languageCode || "en-US";
-
-  if (!text) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: "Missing 'text' field for TTS" }),
-    };
-  }
-
-  try {
-    const response = await fetch("https://api.openai.com/v1/audio/speech", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini-tts",
-        input: text,
-        voice: "alloy",
-        format: "mp3",
-        // Optional hint:
-        // language: languageCode,
-      }),
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("OpenAI TTS error:", errText);
+    if (!text || typeof text !== "string" || !text.trim()) {
       return {
-        statusCode: 500,
-        body: JSON.stringify({
-          error: "OpenAI TTS request failed",
-          details: errText.slice(0, 400),
-        }),
+        statusCode: 400,
+        body: JSON.stringify({ error: "Missing or empty 'text' field" }),
       };
     }
 
-    const arrayBuffer = await response.arrayBuffer();
-    const base64Audio = Buffer.from(arrayBuffer).toString("base64");
+    // Call OpenAI TTS
+    const response = await openai.audio.speech.create({
+      model: "gpt-4o-mini-tts",  // or the TTS model you want
+      voice,
+      input: text,
+      // OpenAI SDK returns a buffer-like object
+    });
+
+    // Turn into a Node Buffer and then base64 encode for Netlify
+    const audioBuffer = Buffer.from(await response.arrayBuffer());
+    const base64Audio = audioBuffer.toString("base64");
 
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ audio: base64Audio }),
+      headers: {
+        "Content-Type": "audio/mpeg",
+      },
+      body: base64Audio,
+      isBase64Encoded: true,
     };
   } catch (err) {
-    console.error("TTS function exception:", err);
+    console.error("TTS error:", err);
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: "TTS function exception",
-        details: String(err),
+        error: "TTS failed",
+        details: err.message || String(err),
       }),
     };
   }
