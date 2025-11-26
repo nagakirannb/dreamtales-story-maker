@@ -595,21 +595,21 @@
         max-width: 100%;
       }
     }
+
     .music-toggle {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 11px;
-        color: #9ca3af;
-        cursor: pointer;
-        user-select: none;
-      }
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #9ca3af;
+      cursor: pointer;
+      user-select: none;
+    }
 
-        .music-toggle input[type="checkbox"] {
-          accent-color: #fbbf24; /* soft gold */
-          cursor: pointer;
-        }
-
+    .music-toggle input[type="checkbox"] {
+      accent-color: #fbbf24;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -723,15 +723,15 @@
             </div>
 
             <div class="actions-row">
-              <!-- NEW: Listen button -->
-              <button id="listenStoryBtn" class="secondary-btn" disabled>🔊 Listen</button>
+              <button id="listenStoryBtnFooter" class="secondary-btn" disabled>🔊 Listen</button>
 
               <button id="downloadPdfBtn" class="primary-btn" disabled>Download PDF</button>
-                        <!-- NEW: background music toggle -->
-                            <label class="music-toggle">
-                            <input type="checkbox" id="musicToggle" checked />
-                            <span>Background music</span>
-                        </label>
+
+              <label class="music-toggle">
+                <input type="checkbox" id="musicToggle" checked />
+                <span>Background music</span>
+              </label>
+
               <button id="saveStoryBtn" class="secondary-btn" disabled>Save story</button>
               <button id="feedbackBtn" class="ghost-btn" type="button">
                 💬 Give feedback
@@ -779,7 +779,7 @@
     let touchStartY = 0;
     let touchStartTime = 0;
 
-    // TTS audio state (OpenAI via Netlify function)
+    // TTS audio state
     let storyAudioUrl = null;
     let isTtsPlaying = false;
     let isTtsLoading = false;
@@ -819,86 +819,77 @@
     const savedStoriesList = document.getElementById("savedStoriesList");
     const downloadPdfBtn = document.getElementById("downloadPdfBtn");
     const languageSelect = document.getElementById("language");
-    const listenStoryBtn = document.getElementById("listenStoryBtn");
+    const listenStoryBtnHeader = document.getElementById("listenStoryBtn");
+    const listenStoryBtnFooter = document.getElementById("listenStoryBtnFooter");
     const musicToggleBtn = document.getElementById("musicToggleBtn");
     const homeBtn = document.getElementById("homeBtn");
     const storyTypeSelect = document.getElementById("storyType");
     const bgMusicEl = document.getElementById("bgMusic");
     const storyAudioEl = document.getElementById("storyAudio");
     const musicToggle = document.getElementById("musicToggle");
+    const feedbackBtn = document.getElementById("feedbackBtn");
 
-      // background music
-      let bgMusic = null;
-      let isBgMusicReady = false;
-              
-    // --- Background Music Setup ---
-          let bgMusic = new Audio("/music/soft-lullaby.mp3");
-          bgMusic.loop = true;
-          bgMusic.volume = 0.35;  // softly under narration
-          
-          const musicToggle = document.getElementById("musicToggle");
-          if (musicToggle) {
-            // default ON
-            musicToggle.checked = true;
-          
-            bgMusic.addEventListener("canplaythrough", () => {
-              if (musicToggle.checked) bgMusic.play().catch(() => {});
-            });
-          
-            musicToggle.addEventListener("change", () => {
-              if (musicToggle.checked) {
-                bgMusic.play().catch(() => {});
-              } else {
-                bgMusic.pause();
-              }
-            });
-          }
-          
-          // Always stop music when TTS is playing
-          function pauseMusicDuringTts() {
-            if (!bgMusic) return;
-            bgMusic.pause();
-          }
+    // ----- Background music helpers -----
 
-function resumeMusicAfterTts() {
-  if (!bgMusic) return;
-  if (musicToggle.checked) bgMusic.play().catch(() => {});
-}
-
-    
-    // Initialize background music (gentle lullaby loop)
-      function initBackgroundMusic() {
-        if (bgMusic) return;
-      
-        bgMusic = new Audio(
-          "https://cdn.pixabay.com/download/audio/2022/03/15/audio_08d9b5fb90.mp3?filename=lullaby-ambient-21941.mp3"
-        );
-        bgMusic.loop = true;
-        bgMusic.volume = 0.25; // 0–1; tweak to taste
-        isBgMusicReady = true;
+    function ensureMusicSource() {
+      if (!bgMusicEl) return;
+      if (!bgMusicEl.src) {
+        bgMusicEl.src =
+          "https://cdn.pixabay.com/download/audio/2022/03/15/audio_08d9b5fb90.mp3?filename=lullaby-ambient-21941.mp3";
+        bgMusicEl.loop = true;
+        bgMusicEl.volume = 0.35;
       }
-      
-      // call once on load so it's ready when the user first listens
-      initBackgroundMusic();
+    }
 
-      function startBackgroundMusic() {
-                  if (!bgMusic || !isBgMusicReady) return;
-                  if (!musicToggle || !musicToggle.checked) return;
-                
-                  bgMusic
-                    .play()
-                    .catch((err) => {
-                      console.warn("Could not start background music:", err);
-                    });
-                }
+    function startBackgroundMusic() {
+      if (!bgMusicEl || !musicToggle || !musicToggle.checked) return;
+      ensureMusicSource();
+      const playPromise = bgMusicEl.play();
+      if (playPromise && typeof playPromise.then === "function") {
+        playPromise.catch(err => {
+          console.warn("Background music could not autoplay:", err);
+          statusEl.textContent = "Tap Music again to start background audio.";
+        });
+      }
+    }
 
-        function stopBackgroundMusic() {
-          if (!bgMusic) return;
-          bgMusic.pause();
-          bgMusic.currentTime = 0;
+    function stopBackgroundMusic() {
+      if (!bgMusicEl) return;
+      bgMusicEl.pause();
+    }
+
+    function pauseMusicDuringTts() {
+      if (!bgMusicEl) return;
+      bgMusicEl.pause();
+    }
+
+    function resumeMusicAfterTts() {
+      if (!bgMusicEl || !musicToggle || !musicToggle.checked) return;
+      startBackgroundMusic();
+    }
+
+    if (musicToggle) {
+      musicToggle.addEventListener("change", () => {
+        if (musicToggle.checked) {
+          musicEnabled = true;
+          if (!isTtsPlaying) {
+            startBackgroundMusic();
+          }
+        } else {
+          musicEnabled = false;
+          stopBackgroundMusic();
         }
+      });
+    }
 
-
+    if (musicToggleBtn && musicToggle) {
+      musicToggleBtn.addEventListener("click", () => {
+        if (!storyPages.length) return;
+        musicToggle.checked = !musicToggle.checked;
+        musicToggle.dispatchEvent(new Event("change"));
+        musicToggleBtn.textContent = musicToggle.checked ? "🎵 Music on" : "🎵 Music off";
+      });
+    }
 
     // ---------- helpers for auth + storage ----------
 
@@ -1069,7 +1060,8 @@ function resumeMusicAfterTts() {
         moralBox.style.display = "none";
         saveStoryBtn.disabled = true;
         if (downloadPdfBtn) downloadPdfBtn.disabled = true;
-        if (listenStoryBtn) listenStoryBtn.disabled = true;
+        if (listenStoryBtnHeader) listenStoryBtnHeader.disabled = true;
+        if (listenStoryBtnFooter) listenStoryBtnFooter.disabled = true;
         if (musicToggleBtn) musicToggleBtn.disabled = true;
         return;
       }
@@ -1113,7 +1105,8 @@ function resumeMusicAfterTts() {
       const hasStory = storyPages.length > 0;
       saveStoryBtn.disabled = !hasStory;
       if (downloadPdfBtn) downloadPdfBtn.disabled = !hasStory;
-      if (listenStoryBtn) listenStoryBtn.disabled = !hasStory;
+      if (listenStoryBtnHeader) listenStoryBtnHeader.disabled = !hasStory;
+      if (listenStoryBtnFooter) listenStoryBtnFooter.disabled = !hasStory;
       if (musicToggleBtn) musicToggleBtn.disabled = !hasStory;
     }
 
@@ -1416,7 +1409,8 @@ function resumeMusicAfterTts() {
       storyAudioEl.removeAttribute("src");
       isTtsPlaying = false;
       isTtsLoading = false;
-      if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
+      if (listenStoryBtnHeader) listenStoryBtnHeader.textContent = "🔊 Listen";
+      if (listenStoryBtnFooter) listenStoryBtnFooter.textContent = "🔊 Listen";
     }
 
     function stopStoryAudio() {
@@ -1424,7 +1418,8 @@ function resumeMusicAfterTts() {
       storyAudioEl.pause();
       storyAudioEl.currentTime = 0;
       isTtsPlaying = false;
-      if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
+      if (listenStoryBtnHeader) listenStoryBtnHeader.textContent = "🔊 Listen";
+      if (listenStoryBtnFooter) listenStoryBtnFooter.textContent = "🔊 Listen";
     }
 
     async function fetchTtsAudio() {
@@ -1438,8 +1433,7 @@ function resumeMusicAfterTts() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text,
-          language: langCode,
-          voice: "alloy"
+          languageCode: langCode
         })
       });
 
@@ -1454,7 +1448,19 @@ function resumeMusicAfterTts() {
         throw new Error(msg);
       }
 
-      const blob = await res.blob();
+      const data = await res.json();
+      if (!data.audio) {
+        throw new Error("No audio field in TTS response");
+      }
+
+      const byteChars = atob(data.audio);
+      const byteNumbers = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) {
+        byteNumbers[i] = byteChars.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: "audio/mpeg" });
+
       if (storyAudioUrl) {
         URL.revokeObjectURL(storyAudioUrl);
       }
@@ -1465,124 +1471,56 @@ function resumeMusicAfterTts() {
     if (storyAudioEl) {
       storyAudioEl.addEventListener("ended", () => {
         isTtsPlaying = false;
-        if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
-        if (musicEnabled && bgMusicEl) bgMusicEl.volume = 0.35;
-      });
-
-      storyAudioEl.addEventListener("play", () => {
-        if (musicEnabled && bgMusicEl) bgMusicEl.volume = 0.25;
-      });
-
-      storyAudioEl.addEventListener("pause", () => {
-        if (musicEnabled && bgMusicEl) bgMusicEl.volume = 0.35;
+        if (listenStoryBtnHeader) listenStoryBtnHeader.textContent = "🔊 Listen";
+        if (listenStoryBtnFooter) listenStoryBtnFooter.textContent = "🔊 Listen";
+        resumeMusicAfterTts();
       });
     }
 
-    if (listenStoryBtn) {
-  listenStoryBtn.addEventListener("click", async () => {
-    if (!storyPages.length || isTtsLoading) return;
+    async function handleListenClick() {
+      if (!storyPages.length || isTtsLoading) return;
 
-    // Toggle off
-    if (isTtsPlaying) {
-      stopStoryAudio();
-      resumeMusicAfterTts();
-      
-      return;
-    }
-
-    try {
-      isTtsLoading = true;
-      listenStoryBtn.textContent = "⏳ Preparing audio...";
-      statusEl.textContent = "Preparing high-quality bedtime audio...";
-
-      pauseMusicDuringTts();  // <<<<<< NEW
-
-      if (!storyAudioEl.src) {
-        await fetchTtsAudio();
+      // Toggle off
+      if (isTtsPlaying) {
+        stopStoryAudio();
+        resumeMusicAfterTts();
+        return;
       }
 
-      await storyAudioEl.play();
-      isTtsPlaying = true;
+      try {
+        isTtsLoading = true;
+        if (listenStoryBtnHeader) listenStoryBtnHeader.textContent = "⏳ Preparing audio...";
+        if (listenStoryBtnFooter) listenStoryBtnFooter.textContent = "⏳ Preparing audio...";
+        statusEl.textContent = "Preparing high-quality bedtime audio...";
 
-      listenStoryBtn.textContent = "⏹ Stop audio";
-      statusEl.textContent = "Listening mode: story audio is playing.";
+        pauseMusicDuringTts();
 
-      storyAudioEl.onended = () => {
-        isTtsPlaying = false;
-        listenStoryBtn.textContent = "🔊 Listen";
-        resumeMusicAfterTts();   // <<<<<< NEW
-      };
-
-    } catch (err) {
-      console.error("TTS play error", err);
-      statusEl.textContent = "Audio could not start: " + err.message;
-      listenStoryBtn.textContent = "🔊 Listen";
-      resumeMusicAfterTts();  // fall back
-    } finally {
-      isTtsLoading = false;
-    }
-  });
-}
-
-        if (musicToggle) {
-          musicToggle.addEventListener("change", () => {
-            if (!musicToggle.checked) {
-              // user turned music off
-              stopBackgroundMusic();
-            } else {
-              // user turned it on while TTS is already playing
-              // if your TTS audio is currently playing, start music
-              // adapt `isTtsPlaying` to whatever flag you use
-              if (typeof isTtsPlaying !== "undefined" && isTtsPlaying) {
-                startBackgroundMusic();
-              }
-            }
-          });
+        if (!storyAudioEl.src) {
+          await fetchTtsAudio();
         }
 
-    // ---------- Background music ----------
+        await storyAudioEl.play();
+        isTtsPlaying = true;
 
-    function ensureMusicSource() {
-      if (!bgMusicEl) return;
-      // TODO: replace with your own hosted MP3 URLs
-      if (currentMusicMode === "lullaby") {
-        bgMusicEl.src = "/audio/gentle-lullaby.mp3";
-      } else {
-        bgMusicEl.src = "/audio/deep-night-ambience.mp3";
+        if (listenStoryBtnHeader) listenStoryBtnHeader.textContent = "⏹ Stop audio";
+        if (listenStoryBtnFooter) listenStoryBtnFooter.textContent = "⏹ Stop audio";
+        statusEl.textContent = "Listening mode: story audio is playing.";
+      } catch (err) {
+        console.error("TTS play error", err);
+        statusEl.textContent = "Audio could not start: " + err.message;
+        if (listenStoryBtnHeader) listenStoryBtnHeader.textContent = "🔊 Listen";
+        if (listenStoryBtnFooter) listenStoryBtnFooter.textContent = "🔊 Listen";
+        resumeMusicAfterTts();
+      } finally {
+        isTtsLoading = false;
       }
     }
 
-    function startBackgroundMusic() {
-      if (!bgMusicEl) return;
-      ensureMusicSource();
-      bgMusicEl.volume = 0.35;
-      const playPromise = bgMusicEl.play();
-      if (playPromise && typeof playPromise.then === "function") {
-        playPromise.catch(err => {
-          console.warn("Background music could not autoplay:", err);
-          statusEl.textContent = "Tap Music again to start background audio.";
-        });
-      }
+    if (listenStoryBtnHeader) {
+      listenStoryBtnHeader.addEventListener("click", handleListenClick);
     }
-
-    function stopBackgroundMusic() {
-      if (!bgMusicEl) return;
-      bgMusicEl.pause();
-    }
-
-    if (musicToggleBtn) {
-      musicToggleBtn.addEventListener("click", () => {
-        if (!storyPages.length) return;
-
-        musicEnabled = !musicEnabled;
-        if (musicEnabled) {
-          startBackgroundMusic();
-          musicToggleBtn.textContent = "🎵 Music on";
-        } else {
-          stopBackgroundMusic();
-          musicToggleBtn.textContent = "🎵 Music off";
-        }
-      });
+    if (listenStoryBtnFooter) {
+      listenStoryBtnFooter.addEventListener("click", handleListenClick);
     }
 
     // ---------- save story (local + cloud) ----------
@@ -1670,6 +1608,7 @@ function resumeMusicAfterTts() {
       stopBackgroundMusic();
       musicEnabled = false;
       if (musicToggleBtn) musicToggleBtn.textContent = "🎵 Music off";
+      if (musicToggle) musicToggle.checked = false;
       statusEl.textContent = "Ready for a new bedtime story.";
     }
 
@@ -1719,7 +1658,8 @@ function resumeMusicAfterTts() {
       btn.disabled = true;
       saveStoryBtn.disabled = true;
       if (downloadPdfBtn) downloadPdfBtn.disabled = true;
-      if (listenStoryBtn) listenStoryBtn.disabled = true;
+      if (listenStoryBtnHeader) listenStoryBtnHeader.disabled = true;
+      if (listenStoryBtnFooter) listenStoryBtnFooter.disabled = true;
       if (musicToggleBtn) musicToggleBtn.disabled = true;
 
       statusEl.textContent = "Creating a magical story...";
@@ -1824,7 +1764,8 @@ Rules:
 
         saveStoryBtn.disabled = false;
         if (downloadPdfBtn) downloadPdfBtn.disabled = false;
-        if (listenStoryBtn) listenStoryBtn.disabled = false;
+        if (listenStoryBtnHeader) listenStoryBtnHeader.disabled = false;
+        if (listenStoryBtnFooter) listenStoryBtnFooter.disabled = false;
         if (musicToggleBtn) musicToggleBtn.disabled = false;
 
         enterStoryMode();
@@ -1900,8 +1841,7 @@ Rules:
 
     // ---------- Feedback button ----------
 
-    const feedbackBtn = document.getElementById("feedbackBtn");
-    const FEEDBACK_FORM_URL = "https://docs.google.com/forms/d/1Fq94O9JP0LOSDo3YjScjwVvvtcc1Ji76TIc1giiOvb0/edit";
+    const FEEDBACK_FORM_URL = "https://docs.google.com/forms/d/1Fq94O9JP0LOSDo3YjScjwVvvtcc1Ji76TIc1giiOvb0/viewform";
 
     if (feedbackBtn) {
       feedbackBtn.addEventListener("click", () => {
@@ -1911,4 +1851,3 @@ Rules:
   </script>
 </body>
 </html>
-
