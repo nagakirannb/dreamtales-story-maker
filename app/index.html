@@ -50,7 +50,6 @@
       overflow: hidden;
     }
 
-    /* subtle star speckles */
     .app-shell::before {
       content: "";
       position: absolute;
@@ -219,7 +218,7 @@
       margin-top: 8px;
     }
 
-    /* STORYBOOK PANEL – Magical night look */
+    /* STORYBOOK PANEL */
 
     .storybook {
       display: flex;
@@ -406,8 +405,6 @@
       max-width: 100%;
     }
 
-    /* Pager row */
-
     .pager-row {
       display: flex;
       align-items: center;
@@ -443,8 +440,6 @@
       font-weight: 500;
       color: #4b5563;
     }
-
-    /* Actions row: Listen + Music + PDF + Save */
 
     .actions-row {
       display: flex;
@@ -572,8 +567,6 @@
       background: rgba(127, 29, 29, 1);
     }
 
-    /* STORY MODE – hide left panel & saved section, center the book */
-
     .story-mode .layout {
       grid-template-columns: minmax(0, 1fr);
     }
@@ -593,7 +586,6 @@
       display: inline-block;
     }
 
-    /* default: hide Home button in non-story-mode */
     .header-home-btn {
       display: none;
     }
@@ -709,20 +701,18 @@
               Tip: Swipe left or right on the story page (on touch devices) to flip pages.
             </span>
 
-            <!-- Pager row -->
             <div class="pager-row">
               <button id="prevPage" class="pager-btn" disabled>‹ Prev</button>
               <span id="pageInfo">Page 0 of 0</span>
               <button id="nextPage" class="pager-btn" disabled>Next ›</button>
             </div>
 
-            <!-- Actions row -->
             <div class="actions-row">
               <button id="downloadPdfBtn" class="primary-btn" disabled>Download PDF</button>
               <button id="saveStoryBtn" class="secondary-btn" disabled>Save story</button>
               <button id="feedbackBtn" class="ghost-btn" type="button">
-              💬 Give feedback
-            </button>
+                💬 Give feedback
+              </button>
             </div>
           </div>
         </div>
@@ -747,12 +737,11 @@
     </div>
   </div>
 
-  <!-- Background music element (you can point src to your own MP3s in JS) -->
+  <!-- Background music and TTS audio -->
   <audio id="bgMusic" loop preload="auto"></audio>
+  <audio id="storyAudio" preload="auto"></audio>
 
-  <!-- Netlify Identity widget -->
   <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
-  <!-- jsPDF for PDF download -->
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
   <script>
@@ -767,16 +756,16 @@
     let touchStartY = 0;
     let touchStartTime = 0;
 
-    // audio state (speech)
-    let isSpeaking = false;
-    let currentUtterance = null;
-    let ttsVoices = [];
+    // TTS audio state (OpenAI via Netlify function)
+    let storyAudioUrl = null;
+    let isTtsPlaying = false;
+    let isTtsLoading = false;
 
     // background music state
     let musicEnabled = false;
-    let currentMusicMode = "ambience"; // "ambience" or "lullaby"
+    let currentMusicMode = "ambience";
 
-    // metadata for the current story
+    // metadata
     let lastChildName = "";
     let lastAge = "";
     let lastTheme = "";
@@ -812,17 +801,7 @@
     const homeBtn = document.getElementById("homeBtn");
     const storyTypeSelect = document.getElementById("storyType");
     const bgMusicEl = document.getElementById("bgMusic");
-
-    // ---- Speech synthesis voices ----
-    function loadVoices() {
-      if (!("speechSynthesis" in window)) return;
-      ttsVoices = window.speechSynthesis.getVoices();
-    }
-
-    if ("speechSynthesis" in window) {
-      loadVoices();
-      window.speechSynthesis.addEventListener("voiceschanged", loadVoices);
-    }
+    const storyAudioEl = document.getElementById("storyAudio");
 
     // ---------- helpers for auth + storage ----------
 
@@ -870,7 +849,7 @@
         age: s.age,
         theme: s.theme,
         style: s.style,
-        length: s.length, // story type label
+        length: s.length,
         createdAt: s.created_at,
         pages: s.pages,
         moral: s.moral,
@@ -1059,6 +1038,7 @@
       titleEl.textContent = story.title || `Bedtime story for ${lastChildName || "your child"}`;
       pillEl.textContent = `${story.theme || "Story"} • ${story.style || ""}`;
 
+      resetStoryAudio();
       renderPage();
       statusEl.textContent = "Loaded saved story.";
     }
@@ -1130,10 +1110,9 @@
       storybookBodyEl.addEventListener("touchend", handleTouchEnd, { passive: true });
     }
 
-    // ---------- Story type config (chapters) ----------
+    // ---------- Story type config ----------
 
     function storyConfigForType(type) {
-      // Returns sentence range and sentences per page
       switch (type) {
         case "short":
           return {
@@ -1239,7 +1218,7 @@
           y += 16;
         });
 
-        y += 8; // gap
+        y += 8;
       }
 
       function drawFooter() {
@@ -1296,7 +1275,7 @@
       downloadPdfBtn.addEventListener("click", downloadStoryPdf);
     }
 
-    // ---------- AUDIO (browser SpeechSynthesis) ----------
+    // ---------- TTS helpers (OpenAI via Netlify function) ----------
 
     function getLanguageCode(language) {
       switch (language) {
@@ -1313,101 +1292,133 @@
       }
     }
 
-    function getStoryTextForAudio() {
+    function getStoryTextForTts() {
       if (!storyPages.length) return "";
-
       const storyLines = [];
       storyPages.forEach(page => {
         const text = page.join(" ").trim();
         if (text) storyLines.push(text);
       });
-
       if (currentMoralLine) {
         storyLines.push("");
         storyLines.push(currentMoralLine);
       }
-
       return storyLines.join("\n");
     }
 
-    async function speakStory() {
-      if (!("speechSynthesis" in window)) {
-        statusEl.textContent = "Audio is not supported in this browser. Try Chrome or Edge.";
-        return;
+    function resetStoryAudio() {
+      if (!storyAudioEl) return;
+      try {
+        storyAudioEl.pause();
+        storyAudioEl.currentTime = 0;
+      } catch {}
+      if (storyAudioUrl) {
+        URL.revokeObjectURL(storyAudioUrl);
+        storyAudioUrl = null;
       }
-
-      const text = getStoryTextForAudio();
-      if (!text) return;
-
-      const langCode = getLanguageCode(lastLanguage || "English");
-      window.speechSynthesis.cancel();
-
-      if (!ttsVoices.length) {
-        await new Promise(resolve => setTimeout(resolve, 250));
-        ttsVoices = window.speechSynthesis.getVoices();
-      }
-
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = langCode;
-      utterance.rate = 0.95;
-
-      if (ttsVoices && ttsVoices.length) {
-        const base = langCode.split("-")[0];
-        const match =
-          ttsVoices.find(v => v.lang && v.lang.startsWith(langCode)) ||
-          ttsVoices.find(v => v.lang && v.lang.startsWith(base));
-
-        if (match) {
-          utterance.voice = match;
-        }
-      }
-
-      utterance.onstart = () => {
-        isSpeaking = true;
-        if (listenStoryBtn) listenStoryBtn.textContent = "⏹ Stop audio";
-      };
-      utterance.onend = () => {
-        isSpeaking = false;
-        if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
-      };
-      utterance.onerror = (e) => {
-        console.error("Speech synthesis error:", e);
-        isSpeaking = false;
-        if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
-        statusEl.textContent = "Audio could not start. Try again or switch browser/device.";
-      };
-
-      currentUtterance = utterance;
-      window.speechSynthesis.speak(utterance);
-    }
-
-    function stopStoryAudio() {
-      if (!("speechSynthesis" in window)) return;
-      window.speechSynthesis.cancel();
-      isSpeaking = false;
+      storyAudioEl.removeAttribute("src");
+      isTtsPlaying = false;
+      isTtsLoading = false;
       if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
     }
 
+    function stopStoryAudio() {
+      if (!storyAudioEl) return;
+      storyAudioEl.pause();
+      storyAudioEl.currentTime = 0;
+      isTtsPlaying = false;
+      if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
+    }
+
+    async function fetchTtsAudio() {
+      const text = getStoryTextForTts();
+      if (!text) throw new Error("No story text available for audio.");
+
+      const langCode = getLanguageCode(lastLanguage || "English");
+
+      const res = await fetch("/.netlify/functions/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text,
+          language: langCode,
+          voice: "alloy"
+        })
+      });
+
+      if (!res.ok) {
+        let msg = "TTS error";
+        try {
+          const err = await res.json();
+          msg = err.error || JSON.stringify(err);
+        } catch {
+          msg = res.statusText || msg;
+        }
+        throw new Error(msg);
+      }
+
+      const blob = await res.blob();
+      if (storyAudioUrl) {
+        URL.revokeObjectURL(storyAudioUrl);
+      }
+      storyAudioUrl = URL.createObjectURL(blob);
+      storyAudioEl.src = storyAudioUrl;
+    }
+
+    if (storyAudioEl) {
+      storyAudioEl.addEventListener("ended", () => {
+        isTtsPlaying = false;
+        if (listenStoryBtn) listenStoryBtn.textContent = "🔊 Listen";
+        if (musicEnabled && bgMusicEl) bgMusicEl.volume = 0.35;
+      });
+
+      storyAudioEl.addEventListener("play", () => {
+        if (musicEnabled && bgMusicEl) bgMusicEl.volume = 0.25;
+      });
+
+      storyAudioEl.addEventListener("pause", () => {
+        if (musicEnabled && bgMusicEl) bgMusicEl.volume = 0.35;
+      });
+    }
+
     if (listenStoryBtn) {
-      listenStoryBtn.addEventListener("click", () => {
-        if (!storyPages.length) return;
-        if (isSpeaking) {
+      listenStoryBtn.addEventListener("click", async () => {
+        if (!storyPages.length || isTtsLoading) return;
+
+        // toggle off
+        if (isTtsPlaying) {
           stopStoryAudio();
-        } else {
-          speakStory().catch(err => {
-            console.error("Error starting audio:", err);
-            statusEl.textContent = "Audio could not start. Try again.";
-          });
+          return;
+        }
+
+        try {
+          isTtsLoading = true;
+          listenStoryBtn.textContent = "⏳ Preparing audio...";
+          statusEl.textContent = "Preparing high-quality bedtime audio...";
+
+          if (!storyAudioEl.src) {
+            await fetchTtsAudio();
+          }
+
+          await storyAudioEl.play();
+          isTtsPlaying = true;
+          listenStoryBtn.textContent = "⏹ Stop audio";
+          statusEl.textContent = "Listening mode: story audio is playing.";
+        } catch (err) {
+          console.error("TTS play error", err);
+          statusEl.textContent = "Audio could not start: " + err.message;
+          listenStoryBtn.textContent = "🔊 Listen";
+        } finally {
+          isTtsLoading = false;
         }
       });
     }
 
-    // ---------- Background music (using <audio>) ----------
+    // ---------- Background music ----------
 
     function ensureMusicSource() {
       if (!bgMusicEl) return;
-      // TODO: Replace these with your own hosted MP3 URLs
-      // For now, both modes point to the same placeholder file path.
+      // TODO: replace with your own hosted MP3 URLs
       if (currentMusicMode === "lullaby") {
         bgMusicEl.src = "/audio/gentle-lullaby.mp3";
       } else {
@@ -1529,6 +1540,7 @@
       if (!appShell) return;
       appShell.classList.remove("story-mode");
       stopStoryAudio();
+      resetStoryAudio();
       stopBackgroundMusic();
       musicEnabled = false;
       if (musicToggleBtn) musicToggleBtn.textContent = "🎵 Music off";
@@ -1541,7 +1553,7 @@
       });
     }
 
-    // ---------- story generation (images parked) ----------
+    // ---------- story generation ----------
 
     async function generateCoverIllustration(childName, age, theme, illustrationPrompts) {
       // parked for now – not called in this release
@@ -1562,6 +1574,7 @@
       }
 
       stopStoryAudio();
+      resetStoryAudio();
       stopBackgroundMusic();
       musicEnabled = false;
       if (musicToggleBtn) musicToggleBtn.textContent = "🎵 Music off";
@@ -1758,20 +1771,17 @@ Rules:
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("service-worker.js").catch(console.error);
     }
-   
-    // ---------- Feedback button (Google Form) ----------
+
+    // ---------- Feedback button ----------
 
     const feedbackBtn = document.getElementById("feedbackBtn");
-
-    // Replace this with your actual Google Form link:
     const FEEDBACK_FORM_URL = "https://docs.google.com/forms/d/1Fq94O9JP0LOSDo3YjScjwVvvtcc1Ji76TIc1giiOvb0/edit";
 
     if (feedbackBtn) {
-    feedbackBtn.addEventListener("click", () => {
-    window.open(FEEDBACK_FORM_URL, "_blank", "noopener");
-  });
-}
-
+      feedbackBtn.addEventListener("click", () => {
+        window.open(FEEDBACK_FORM_URL, "_blank", "noopener");
+      });
+    }
   </script>
 </body>
 </html>
