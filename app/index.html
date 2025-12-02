@@ -682,6 +682,12 @@
             <option value="French">French</option>
             <option value="German">German</option>
           </select>
+          
+          <label>Narrator voice</label>
+          <select id="voice">
+            <option value="soft" selected>Soothing voice</option>
+            <option value="calm-male">Calm male voice</option>
+          </select>
 
           <label>Story Type (chapters)</label>
           <select id="storyType">
@@ -853,6 +859,10 @@
     const musicToggle = document.getElementById("musicToggle");
     const feedbackBtn = document.getElementById("feedbackBtn");
     const musicPresetSelect = document.getElementById("musicPreset");
+    const voiceSelect = document.getElementById("voice");
+    const BG_MUSIC_BASE_VOLUME = 0.35;
+    const BG_MUSIC_DUCKED_VOLUME = 0.14;
+
 
     const BG_MUSIC_URL = "../Music/dreamtales-night.mp3";
 
@@ -883,7 +893,7 @@
         bgMusicEl.src = url;
       }
       bgMusicEl.loop = true;
-      bgMusicEl.volume = 0.35;
+      bgMusicEl.volume = BG_MUSIC_BASE_VOLUME;
     }
 
     function startBackgroundMusic() {
@@ -903,14 +913,32 @@
       bgMusicEl.pause();
     }
 
-    function pauseMusicDuringTts() {
-      if (!bgMusicEl) return;
-      bgMusicEl.pause();
+        function duckMusicForTts() {
+      if (!bgMusicEl || !musicToggle || !musicToggle.checked) return;
+      if (!MUSIC_PRESETS[currentMusicPreset]) return;
+
+      ensureMusicSource();
+      bgMusicEl.volume = BG_MUSIC_DUCKED_VOLUME;
+
+      if (bgMusicEl.paused) {
+        const p = bgMusicEl.play();
+        if (p && typeof p.then === "function") {
+          p.catch(err => {
+            console.warn("BG music couldn't start during TTS:", err);
+          });
+        }
+      }
     }
 
-    function resumeMusicAfterTts() {
-      if (!bgMusicEl || !musicToggle || !musicToggle.checked) return;
-      startBackgroundMusic();
+    function restoreMusicAfterTts() {
+      if (!bgMusicEl) return;
+
+      if (!musicToggle || !musicToggle.checked || !MUSIC_PRESETS[currentMusicPreset]) {
+        bgMusicEl.pause();
+        return;
+      }
+
+      bgMusicEl.volume = BG_MUSIC_BASE_VOLUME;
     }
 
     if (musicToggle) {
@@ -1485,19 +1513,35 @@
       if (listenStoryBtnHeader) listenStoryBtnHeader.textContent = "🔊 Listen";
       if (listenStoryBtnFooter) listenStoryBtnFooter.textContent = "🔊 Listen";
     }
+    
+    function getSelectedVoiceId() {
+      if (!voiceSelect) return "alloy"; // default
+
+      const choice = voiceSelect.value || "soft";
+      switch (choice) {
+        case "calm-male":
+          // Alternate voice with a slightly deeper tone
+          return "verse";
+        case "soft":
+        default:
+          return "alloy";
+      }
+    }
 
     async function fetchTtsAudio() {
       const text = getStoryTextForTts();
       if (!text) throw new Error("No story text available for audio.");
 
       const langCode = getLanguageCode(lastLanguage || "English");
-
+      const voiceId = getSelectedVoiceId();
+      
       const res = await fetch("/.netlify/functions/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text,
-          languageCode: langCode
+          languageCode: langCode,
+          voice: voiceId
         })
       });
 
@@ -1545,7 +1589,7 @@
         isTtsPlaying = false;
         if (listenStoryBtnHeader) listenStoryBtnHeader.textContent = "🔊 Listen";
         if (listenStoryBtnFooter) listenStoryBtnFooter.textContent = "🔊 Listen";
-        resumeMusicAfterTts();
+        restoreMusicAfterTts();
       });
     }
 
@@ -1554,7 +1598,7 @@
 
       if (isTtsPlaying) {
         stopStoryAudio();
-        resumeMusicAfterTts();
+        restoreMusicAfterTts();
         return;
       }
 
@@ -1564,7 +1608,7 @@
         if (listenStoryBtnFooter) listenStoryBtnFooter.textContent = "⏳ Preparing audio...";
         statusEl.textContent = "Preparing high-quality bedtime audio...";
 
-        pauseMusicDuringTts();
+        duckMusicForTts();
 
         if (!storyAudioEl.src) {
           await fetchTtsAudio();
@@ -1581,7 +1625,7 @@
         statusEl.textContent = "Audio could not start: " + err.message;
         if (listenStoryBtnHeader) listenStoryBtnHeader.textContent = "🔊 Listen";
         if (listenStoryBtnFooter) listenStoryBtnFooter.textContent = "🔊 Listen";
-        resumeMusicAfterTts();
+        restoreMusicAfterTts();
       } finally {
         isTtsLoading = false;
       }
@@ -1933,3 +1977,4 @@ Rules:
   </script>
 </body>
 </html>
+
