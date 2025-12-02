@@ -36,7 +36,7 @@ exports.handler = async (event) => {
   const voice = (payload.voice || "alloy").trim() || "alloy";
 
   // Front-end sends `voice` (e.g. "alloy"), but default if missing
-  const voice = payload.voice || "alloy";
+  //const voice = payload.voice || "alloy";
 
   if (!text) {
     return {
