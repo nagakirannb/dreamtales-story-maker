@@ -33,6 +33,8 @@ exports.handler = async (event) => {
   // Front-end sends `language`, older version used `languageCode`
   const language = payload.language || payload.languageCode || "en-US";
 
+  const voice = (payload.voice || "alloy").trim() || "alloy";
+
   // Front-end sends `voice` (e.g. "alloy"), but default if missing
   const voice = payload.voice || "alloy";
 
