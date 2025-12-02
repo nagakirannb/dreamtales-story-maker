@@ -447,6 +447,7 @@
       gap: 8px;
       justify-content: flex-end;
       width: 100%;
+      align-items: center;
     }
 
     .primary-btn,
@@ -610,6 +611,22 @@
       accent-color: #fbbf24;
       cursor: pointer;
     }
+
+    .music-select {
+      min-width: 160px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      background: rgba(15, 23, 42, 0.95);
+      color: #e5e7eb;
+      font-size: 12px;
+      flex: 1 1 160px;
+    }
+
+    .music-select:focus {
+      outline: 2px solid rgba(244, 210, 122, 0.75);
+      border-color: rgba(244, 210, 122, 0.9);
+    }
   </style>
 </head>
 <body>
@@ -727,6 +744,14 @@
 
               <button id="downloadPdfBtn" class="primary-btn" disabled>Download PDF</button>
 
+              <select id="musicPreset" class="music-select" disabled>
+                <option value="dreamtales" selected>DreamTales – Night lullaby</option>
+                <option value="rain">Gentle night rain</option>
+                <option value="piano">Soft piano ambience</option>
+                <option value="forest">Forest & crickets</option>
+                <option value="none">No music</option>
+              </select>
+
               <label class="music-toggle">
                 <input type="checkbox" id="musicToggle" checked />
                 <span>Background music</span>
@@ -812,7 +837,6 @@
     const moralText = document.getElementById("moralText");
     const prevPageBtn = document.getElementById("prevPage");
     const nextPageBtn = document.getElementById("nextPage");
-    const pageInfo = document.getElementById("pageInfo");
     const authBtn = document.getElementById("authBtn");
     const authStatus = document.getElementById("authStatus");
     const saveStoryBtn = document.getElementById("saveStoryBtn");
@@ -828,18 +852,38 @@
     const storyAudioEl = document.getElementById("storyAudio");
     const musicToggle = document.getElementById("musicToggle");
     const feedbackBtn = document.getElementById("feedbackBtn");
-    const BG_MUSIC_URL = "music/dreamtales-night.mp3";
+    const musicPresetSelect = document.getElementById("musicPreset");
+
+    const BG_MUSIC_URL = "../Music/dreamtales-night.mp3";
+
+    const MUSIC_PRESETS = {
+      dreamtales: "../Music/dreamtales-night.mp3", // your local loop
+      rain: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_08d9b5fb90.mp3?filename=lullaby-ambient-21941.mp3",
+      piano: "https://cdn.pixabay.com/download/audio/2021/11/09/audio_c1d9d5f5b5.mp3?filename=soft-piano-ambient-11024.mp3",
+      forest: "https://cdn.pixabay.com/download/audio/2021/09/20/audio_5a22fc4d75.mp3?filename=night-forest-ambience-9093.mp3",
+      none: null
+    };
+    let currentMusicPreset = "dreamtales";
 
     // ----- Background music helpers -----
 
     function ensureMusicSource() {
       if (!bgMusicEl) return;
-      if (!bgMusicEl.src) {
-        bgMusicEl.src =
-          "Music/dreamtales-night.mp3";
-        bgMusicEl.loop = true;
-        bgMusicEl.volume = 0.35;
+
+      const url = MUSIC_PRESETS[currentMusicPreset] || null;
+
+      if (!url) {
+        bgMusicEl.pause();
+        bgMusicEl.removeAttribute("src");
+        return;
       }
+
+      // bgMusicEl.src becomes absolute; compare by suffix
+      if (!bgMusicEl.src || !bgMusicEl.src.endsWith(url)) {
+        bgMusicEl.src = url;
+      }
+      bgMusicEl.loop = true;
+      bgMusicEl.volume = 0.35;
     }
 
     function startBackgroundMusic() {
@@ -873,7 +917,7 @@
       musicToggle.addEventListener("change", () => {
         if (musicToggle.checked) {
           musicEnabled = true;
-          if (!isTtsPlaying) {
+          if (!isTtsPlaying && storyPages.length) {
             startBackgroundMusic();
           }
         } else {
@@ -889,6 +933,23 @@
         musicToggle.checked = !musicToggle.checked;
         musicToggle.dispatchEvent(new Event("change"));
         musicToggleBtn.textContent = musicToggle.checked ? "🎵 Music on" : "🎵 Music off";
+      });
+    }
+
+    if (musicPresetSelect) {
+      musicPresetSelect.addEventListener("change", () => {
+        currentMusicPreset = musicPresetSelect.value || "none";
+
+        if (!storyPages.length) return;
+
+        if (!musicToggle || !musicToggle.checked || currentMusicPreset === "none") {
+          stopBackgroundMusic();
+          return;
+        }
+
+        // restart with new track
+        stopBackgroundMusic();
+        startBackgroundMusic();
       });
     }
 
@@ -1064,6 +1125,7 @@
         if (listenStoryBtnHeader) listenStoryBtnHeader.disabled = true;
         if (listenStoryBtnFooter) listenStoryBtnFooter.disabled = true;
         if (musicToggleBtn) musicToggleBtn.disabled = true;
+        if (musicPresetSelect) musicPresetSelect.disabled = true;
         return;
       }
 
@@ -1109,6 +1171,7 @@
       if (listenStoryBtnHeader) listenStoryBtnHeader.disabled = !hasStory;
       if (listenStoryBtnFooter) listenStoryBtnFooter.disabled = !hasStory;
       if (musicToggleBtn) musicToggleBtn.disabled = !hasStory;
+      if (musicPresetSelect) musicPresetSelect.disabled = !hasStory;
     }
 
     function loadStoryIntoViewer(storyId) {
@@ -1424,61 +1487,58 @@
     }
 
     async function fetchTtsAudio() {
-            const text = getStoryTextForTts();
-            if (!text) throw new Error("No story text available for audio.");
-          
-            const langCode = getLanguageCode(lastLanguage || "English");
-          
-            const res = await fetch("/.netlify/functions/tts", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                text,
-                languageCode: langCode
-              })
-            });
-          
-            if (!res.ok) {
-              let msg = "TTS error";
-              try {
-                const errJson = await res.json();
-                msg = errJson.error || JSON.stringify(errJson);
-              } catch {
-                msg = res.statusText || msg;
-              }
-              throw new Error(msg);
-            }
-          
-            const contentType = (res.headers.get("content-type") || "").toLowerCase();
-            let blob;
-          
-            if (contentType.includes("application/json")) {
-              // Our Netlify function is returning JSON with base64 audio
-              const data = await res.json();
-              if (!data.audio) {
-                throw new Error("No 'audio' field in TTS JSON response");
-              }
-          
-              const byteChars = atob(data.audio);
-              const byteNumbers = new Array(byteChars.length);
-              for (let i = 0; i < byteChars.length; i++) {
-                byteNumbers[i] = byteChars.charCodeAt(i);
-              }
-              const byteArray = new Uint8Array(byteNumbers);
-              blob = new Blob([byteArray], { type: "audio/mpeg" });
-            } else {
-              // Fallback: function is streaming raw MP3 bytes
-              const audioBuffer = await res.arrayBuffer();
-              blob = new Blob([audioBuffer], { type: "audio/mpeg" });
-            }
-          
-            if (storyAudioUrl) {
-              URL.revokeObjectURL(storyAudioUrl);
-            }
-            storyAudioUrl = URL.createObjectURL(blob);
-            storyAudioEl.src = storyAudioUrl;
-          }
+      const text = getStoryTextForTts();
+      if (!text) throw new Error("No story text available for audio.");
 
+      const langCode = getLanguageCode(lastLanguage || "English");
+
+      const res = await fetch("/.netlify/functions/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text,
+          languageCode: langCode
+        })
+      });
+
+      if (!res.ok) {
+        let msg = "TTS error";
+        try {
+          const errJson = await res.json();
+          msg = errJson.error || JSON.stringify(errJson);
+        } catch {
+          msg = res.statusText || msg;
+        }
+        throw new Error(msg);
+      }
+
+      const contentType = (res.headers.get("content-type") || "").toLowerCase();
+      let blob;
+
+      if (contentType.includes("application/json")) {
+        const data = await res.json();
+        if (!data.audio) {
+          throw new Error("No 'audio' field in TTS JSON response");
+        }
+
+        const byteChars = atob(data.audio);
+        const byteNumbers = new Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) {
+          byteNumbers[i] = byteChars.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        blob = new Blob([byteArray], { type: "audio/mpeg" });
+      } else {
+        const audioBuffer = await res.arrayBuffer();
+        blob = new Blob([audioBuffer], { type: "audio/mpeg" });
+      }
+
+      if (storyAudioUrl) {
+        URL.revokeObjectURL(storyAudioUrl);
+      }
+      storyAudioUrl = URL.createObjectURL(blob);
+      storyAudioEl.src = storyAudioUrl;
+    }
 
     if (storyAudioEl) {
       storyAudioEl.addEventListener("ended", () => {
@@ -1492,7 +1552,6 @@
     async function handleListenClick() {
       if (!storyPages.length || isTtsLoading) return;
 
-      // Toggle off
       if (isTtsPlaying) {
         stopStoryAudio();
         resumeMusicAfterTts();
@@ -1673,6 +1732,7 @@
       if (listenStoryBtnHeader) listenStoryBtnHeader.disabled = true;
       if (listenStoryBtnFooter) listenStoryBtnFooter.disabled = true;
       if (musicToggleBtn) musicToggleBtn.disabled = true;
+      if (musicPresetSelect) musicPresetSelect.disabled = true;
 
       statusEl.textContent = "Creating a magical story...";
       titleEl.textContent = "Writing a story for " + childName + "…";
@@ -1779,8 +1839,18 @@ Rules:
         if (listenStoryBtnHeader) listenStoryBtnHeader.disabled = false;
         if (listenStoryBtnFooter) listenStoryBtnFooter.disabled = false;
         if (musicToggleBtn) musicToggleBtn.disabled = false;
+        if (musicPresetSelect) musicPresetSelect.disabled = false;
 
         enterStoryMode();
+
+        // auto-start music if toggle is on and preset is not "none"
+        musicEnabled = !!(musicToggle && musicToggle.checked);
+        if (musicEnabled && currentMusicPreset !== "none") {
+          startBackgroundMusic();
+          if (musicToggleBtn) musicToggleBtn.textContent = "🎵 Music on";
+        } else if (musicToggleBtn) {
+          musicToggleBtn.textContent = "🎵 Music off";
+        }
 
       } catch (err) {
         console.error(err);
@@ -1863,7 +1933,3 @@ Rules:
   </script>
 </body>
 </html>
-
-
-
-
