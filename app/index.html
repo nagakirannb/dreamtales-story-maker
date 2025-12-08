@@ -8,8 +8,7 @@
   <meta name="theme-color" content="#020617" />
   <style>
     :root {
-      --midnight: #020617; /* deep navy */
-      --midnight-soft: #02081f;
+      --midnight: #020617;
       --night-gradient-start: #020617;
       --night-gradient-end: #0b1220;
       --accent-gold: #f4d27a;
@@ -224,11 +223,11 @@
       display: flex;
       flex-direction: column;
       height: 100%;
-      background: radial-gradient(circle at top left, #0f172a, #020617);
-      border-radius: 18px;
-      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: radial-gradient(circle at top left, #0b1220, #020617);
+      border-radius: 22px;
+      border: 1px solid rgba(148, 163, 184, 0.45);
       box-shadow:
-        0 20px 45px rgba(15, 23, 42, 0.9),
+        0 26px 60px rgba(15, 23, 42, 0.85),
         0 0 0 1px rgba(15, 23, 42, 0.9);
       padding: 16px 16px 18px;
       position: relative;
@@ -273,6 +272,7 @@
       color: #e5e7eb;
       padding: 4px 8px;
       cursor: pointer;
+      display: none;
     }
 
     .header-home-btn:hover {
@@ -281,20 +281,80 @@
     }
 
     .storybook-title {
-      font-weight: 700;
-      font-size: 15px;
-      color: #f9fafb;
+      font-weight: 600;
+      font-size: 14px;
+      color: #e5e7eb;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: radial-gradient(circle at top left, rgba(15,23,42,0.9), rgba(15,23,42,0.6));
+      border: 1px solid rgba(148,163,184,0.3);
       white-space: nowrap;
       text-overflow: ellipsis;
       overflow: hidden;
+      max-width: 240px;
     }
 
     .storybook-header-right {
       display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: flex-end;
+    }
+
+    .audio-bar {
+      display: flex;
       align-items: center;
       gap: 6px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
+      padding: 4px 6px;
+      border-radius: 999px;
+      background: radial-gradient(circle at top left, rgba(15,23,42,0.95), rgba(15,23,42,0.8));
+      border: 1px solid rgba(148,163,184,0.6);
+      box-shadow: 0 12px 24px rgba(15,23,42,0.85);
+    }
+
+    .audio-btn {
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.5);
+      padding: 7px 14px;
+      font-size: 12px;
+      background: rgba(15,23,42,0.92);
+      color: #e5e7eb;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .audio-btn-primary {
+      background: linear-gradient(to right, #facc15, #fb923c);
+      border-color: rgba(250,204,21,0.8);
+      color: #42210b;
+      font-weight: 600;
+      box-shadow: 0 10px 20px rgba(248, 181, 63, 0.35);
+    }
+
+    .audio-btn-secondary {
+      font-weight: 500;
+    }
+
+    .audio-btn:disabled {
+      opacity: 0.55;
+      box-shadow: none;
+    }
+
+    .audio-btn:hover:not(:disabled) {
+      transform: translateY(-0.5px);
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.7);
+    }
+
+    .music-select-compact {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      background: rgba(15, 23, 42, 0.95);
+      color: #e5e7eb;
+      font-size: 11px;
+      padding: 6px 10px;
+      max-width: 180px;
     }
 
     .storybook-pill {
@@ -307,41 +367,39 @@
       max-width: 210px;
     }
 
-    .music-controls {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    @media (max-width: 640px) {
-      .music-controls {
-        width: 100%;
-        justify-content: flex-end;
-      }
-    }
-
     .storybook-body {
       flex: 1;
       overflow: hidden;
       margin-top: 8px;
       padding-right: 4px;
       position: relative;
+      z-index: 1;
     }
 
     .storybook-page {
       width: 100%;
       height: 100%;
       overflow-y: auto;
-      line-height: 1.7;
-      font-size: 14.5px;
+      line-height: 1.8;
+      font-size: 15px;
       color: #111827;
       white-space: pre-wrap;
-      background: radial-gradient(circle at top, #fefce8 0, #f9fafb 45%, #fef9c3 100%);
-      border-radius: 16px;
-      padding: 14px 18px 16px;
+      background:
+        radial-gradient(circle at top, #fefce8 0, #f9fafb 42%, #fef3c7 100%);
+      border-radius: 18px;
+      padding: 18px 22px 20px;
       box-shadow:
-        0 0 0 1px rgba(252, 211, 77, 0.6),
-        0 16px 30px rgba(15, 23, 42, 0.55);
+        0 0 0 1px rgba(252, 211, 77, 0.7),
+        0 18px 34px rgba(15, 23, 42, 0.65);
+    }
+
+    .storybook-page p {
+      margin: 0 0 10px;
+    }
+
+    .storybook-page p:first-of-type::first-letter {
+      font-size: 1.35em;
+      font-weight: 700;
     }
 
     .page-fade {
@@ -349,26 +407,21 @@
     }
 
     @keyframes pageFade {
-      from {
-        opacity: 0;
-        transform: translateX(6px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
+      from { opacity: 0; transform: translateX(6px); }
+      to   { opacity: 1; transform: translateX(0); }
     }
 
     .page-image {
       width: 100%;
-      max-height: 260px;
+      max-height: 280px;
       object-fit: cover;
-      border-radius: 14px;
-      margin-bottom: 12px;
+      border-radius: 16px;
+      margin-bottom: 16px;
       background: #e5e7eb;
+      border: 1px solid rgba(252, 211, 77, 0.9);
       box-shadow:
-        0 10px 24px rgba(15, 23, 42, 0.35),
-        0 0 0 1px rgba(255, 255, 255, 0.9);
+        0 16px 32px rgba(15, 23, 42, 0.6),
+        0 0 0 1px rgba(255,255,255,0.9);
     }
 
     .storybook-placeholder {
@@ -388,6 +441,7 @@
       color: #4a3907;
       position: relative;
       z-index: 1;
+      display: none;
     }
 
     .moral-label {
@@ -419,6 +473,11 @@
       font-size: 11px;
       color: var(--text-muted);
       max-width: 100%;
+    }
+
+    .music-hint {
+      font-size: 11px;
+      color: #9ca3af;
     }
 
     .pager-row {
@@ -584,6 +643,7 @@
       background: rgba(127, 29, 29, 1);
     }
 
+    /* Story mode (after generation) */
     .story-mode .layout {
       grid-template-columns: minmax(0, 1fr);
     }
@@ -603,46 +663,10 @@
       display: inline-block;
     }
 
-    .header-home-btn {
-      display: none;
-    }
-
     @media (max-width: 900px) {
       .story-mode .storybook {
         max-width: 100%;
       }
-    }
-
-    /* background music checkbox stays hidden, we use the Music button + preset */
-    .music-toggle {
-      display: none;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      color: #9ca3af;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .music-toggle input[type="checkbox"] {
-      accent-color: #fbbf24;
-      cursor: pointer;
-    }
-
-    .music-select {
-      min-width: 150px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.7);
-      background: rgba(15, 23, 42, 0.95);
-      color: #e5e7eb;
-      font-size: 12px;
-      flex: 0 0 auto;
-    }
-
-    .music-select:focus {
-      outline: 2px solid rgba(244, 210, 122, 0.75);
-      border-color: rgba(244, 210, 122, 0.9);
     }
   </style>
 </head>
@@ -728,10 +752,16 @@
               </div>
             </div>
             <div class="storybook-header-right">
-              <button id="listenStoryBtn" class="ghost-btn" disabled>🔊 Listen</button>
-              <div class="music-controls">
-                <button id="musicToggleBtn" class="ghost-btn" disabled>🎵 Music off</button>
-                <select id="musicPreset" class="music-select" disabled>
+              <div class="audio-bar">
+                <button id="listenStoryBtn" class="audio-btn audio-btn-primary" disabled>
+                  🔊 Listen
+                </button>
+
+                <button id="musicToggleBtn" class="audio-btn audio-btn-secondary" disabled>
+                  🎵 Music off
+                </button>
+
+                <select id="musicPreset" class="music-select-compact" disabled>
                   <option value="dreamtales" selected>DreamTales – Night lullaby</option>
                   <option value="twinkle">Twinkle</option>
                   <option value="pianos">Soft piano ambience</option>
@@ -739,6 +769,7 @@
                   <option value="none">No music</option>
                 </select>
               </div>
+
               <div class="storybook-pill" id="storybookPill">
                 Ready for bedtime
               </div>
@@ -755,7 +786,7 @@
             </div>
           </div>
 
-          <div class="moral-box" id="moralBox" style="display:none;">
+          <div class="moral-box" id="moralBox">
             <span class="moral-label">Moral:</span>
             <span id="moralText"></span>
           </div>
@@ -763,6 +794,10 @@
           <div class="storybook-footer">
             <span class="badge">
               Tip: Swipe left or right on the story page (on touch devices) to flip pages.
+            </span>
+
+            <span class="music-hint" id="musicHint">
+              🎵 Use the music controls above to set the mood.
             </span>
 
             <div class="pager-row">
@@ -773,13 +808,6 @@
 
             <div class="actions-row">
               <button id="downloadPdfBtn" class="primary-btn" disabled>Download PDF</button>
-
-              <!-- hidden checkbox that powers Music logic -->
-              <label class="music-toggle">
-                <input type="checkbox" id="musicToggle" checked />
-                <span>Background music</span>
-              </label>
-
               <button id="saveStoryBtn" class="secondary-btn" disabled>Save story</button>
               <button id="feedbackBtn" class="ghost-btn" type="button">
                 💬 Give feedback
@@ -834,7 +862,6 @@
 
     // background music state
     let musicEnabled = false;
-    let currentMusicMode = "ambience";
 
     // metadata
     let lastChildName = "";
@@ -868,23 +895,21 @@
     const downloadPdfBtn = document.getElementById("downloadPdfBtn");
     const languageSelect = document.getElementById("language");
     const listenStoryBtnHeader = document.getElementById("listenStoryBtn");
-    const listenStoryBtnFooter = document.getElementById("listenStoryBtnFooter");
+    const listenStoryBtnFooter = document.getElementById("listenStoryBtnFooter"); // may be null
     const musicToggleBtn = document.getElementById("musicToggleBtn");
     const homeBtn = document.getElementById("homeBtn");
     const storyTypeSelect = document.getElementById("storyType");
     const bgMusicEl = document.getElementById("bgMusic");
     const storyAudioEl = document.getElementById("storyAudio");
-    const musicToggle = document.getElementById("musicToggle");
     const feedbackBtn = document.getElementById("feedbackBtn");
     const musicPresetSelect = document.getElementById("musicPreset");
     const voiceSelect = document.getElementById("voice");
+
     const BG_MUSIC_BASE_VOLUME = 0.35;
     const BG_MUSIC_DUCKED_VOLUME = 0.14;
 
-    const BG_MUSIC_URL = "../Music/dreamtales-night.mp3";
-
     const MUSIC_PRESETS = {
-      dreamtales: "../Music/dreamtales-night.mp3", // your local loop
+      dreamtales: "../Music/dreamtales-night.mp3",
       twinkle: "../Music/TwinkleTLS-lullaby-baby-sleep-music.mp3",
       pianos: "../Music/soft-piano-music-432727.mp3",
       flute: "../Music/krishna_flute.mp3",
@@ -913,7 +938,9 @@
     }
 
     function startBackgroundMusic() {
-      if (!bgMusicEl || !musicToggle || !musicToggle.checked) return;
+      if (!bgMusicEl) return;
+      if (!MUSIC_PRESETS[currentMusicPreset]) return;
+
       ensureMusicSource();
       const playPromise = bgMusicEl.play();
       if (playPromise && typeof playPromise.then === "function") {
@@ -930,7 +957,7 @@
     }
 
     function duckMusicForTts() {
-      if (!bgMusicEl || !musicToggle || !musicToggle.checked) return;
+      if (!bgMusicEl) return;
       if (!MUSIC_PRESETS[currentMusicPreset]) return;
 
       ensureMusicSource();
@@ -949,44 +976,37 @@
     function restoreMusicAfterTts() {
       if (!bgMusicEl) return;
 
-      if (!musicToggle || !musicToggle.checked || !MUSIC_PRESETS[currentMusicPreset]) {
+      if (!musicEnabled || !MUSIC_PRESETS[currentMusicPreset]) {
         bgMusicEl.pause();
         return;
       }
-
       bgMusicEl.volume = BG_MUSIC_BASE_VOLUME;
     }
 
-    if (musicToggle) {
-      musicToggle.addEventListener("change", () => {
-        if (musicToggle.checked) {
-          musicEnabled = true;
-          if (!isTtsPlaying && storyPages.length) {
-            startBackgroundMusic();
-          }
+    // Top “Music on/off” pill
+    if (musicToggleBtn) {
+      musicToggleBtn.addEventListener("click", () => {
+        if (!storyPages.length) return;
+
+        musicEnabled = !musicEnabled;
+        if (musicEnabled && currentMusicPreset !== "none") {
+          startBackgroundMusic();
+          musicToggleBtn.textContent = "🎵 Music on";
         } else {
-          musicEnabled = false;
           stopBackgroundMusic();
+          musicToggleBtn.textContent = "🎵 Music off";
         }
       });
     }
 
-    if (musicToggleBtn && musicToggle) {
-      musicToggleBtn.addEventListener("click", () => {
-        if (!storyPages.length) return;
-        musicToggle.checked = !musicToggle.checked;
-        musicToggle.dispatchEvent(new Event("change"));
-        musicToggleBtn.textContent = musicToggle.checked ? "🎵 Music on" : "🎵 Music off";
-      });
-    }
-
+    // Dropdown for choosing track
     if (musicPresetSelect) {
       musicPresetSelect.addEventListener("change", () => {
         currentMusicPreset = musicPresetSelect.value || "none";
 
         if (!storyPages.length) return;
 
-        if (!musicToggle || !musicToggle.checked || currentMusicPreset === "none") {
+        if (!musicEnabled || currentMusicPreset === "none") {
           stopBackgroundMusic();
           return;
         }
@@ -1476,16 +1496,11 @@
 
     function getLanguageCode(language) {
       switch (language) {
-        case "Hindi":
-          return "hi-IN";
-        case "Spanish":
-          return "es-ES";
-        case "French":
-          return "fr-FR";
-        case "German":
-          return "de-DE";
-        default:
-          return "en-US";
+        case "Hindi": return "hi-IN";
+        case "Spanish": return "es-ES";
+        case "French": return "fr-FR";
+        case "German": return "de-DE";
+        default: return "en-US";
       }
     }
 
@@ -1528,17 +1543,14 @@
       if (listenStoryBtnHeader) listenStoryBtnHeader.textContent = "🔊 Listen";
       if (listenStoryBtnFooter) listenStoryBtnFooter.textContent = "🔊 Listen";
     }
-    
+
     function getSelectedVoiceId() {
       if (!voiceSelect) return "alloy";
-
       const choice = voiceSelect.value || "soft";
       switch (choice) {
-        case "calm-male":
-          return "verse";
+        case "calm-male": return "verse";
         case "soft":
-        default:
-          return "alloy";
+        default: return "alloy";
       }
     }
 
@@ -1737,7 +1749,6 @@
       stopBackgroundMusic();
       musicEnabled = false;
       if (musicToggleBtn) musicToggleBtn.textContent = "🎵 Music off";
-      if (musicToggle) musicToggle.checked = false;
       statusEl.textContent = "Ready for a new bedtime story.";
     }
 
@@ -1944,8 +1955,8 @@ Rules:
         currentPageIndex = 0;
         renderPage();
 
-        // Generate cover art in the background using illustration prompts
-        generateCoverIllustration(childName, age, theme, illustrationPrompts);
+        // generate cover art now that we have prompts
+        generateCoverIllustration(childName, age, theme, currentIllustrationPrompts);
 
         titleEl.textContent = "Bedtime story for " + childName;
         statusEl.textContent =
@@ -1960,13 +1971,9 @@ Rules:
 
         enterStoryMode();
 
-        musicEnabled = !!(musicToggle && musicToggle.checked);
-        if (musicEnabled && currentMusicPreset !== "none") {
-          startBackgroundMusic();
-          if (musicToggleBtn) musicToggleBtn.textContent = "🎵 Music on";
-        } else if (musicToggleBtn) {
-          musicToggleBtn.textContent = "🎵 Music off";
-        }
+        // music starts off; user turns it on with the button
+        musicEnabled = false;
+        if (musicToggleBtn) musicToggleBtn.textContent = "🎵 Music off";
 
       } catch (err) {
         console.error(err);
