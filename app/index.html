@@ -293,6 +293,8 @@
       display: flex;
       align-items: center;
       gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
     }
 
     .storybook-pill {
@@ -302,6 +304,20 @@
       background: var(--accent-gold-soft);
       color: #facc15;
       border: 1px solid rgba(250, 204, 21, 0.5);
+      max-width: 210px;
+    }
+
+    .music-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    @media (max-width: 640px) {
+      .music-controls {
+        width: 100%;
+        justify-content: flex-end;
+      }
     }
 
     .storybook-body {
@@ -597,8 +613,9 @@
       }
     }
 
+    /* background music checkbox stays hidden, we use the Music button + preset */
     .music-toggle {
-      display: none; /* hide the checkbox UI, keep functionality in JS */
+      display: none;
       align-items: center;
       gap: 6px;
       font-size: 11px;
@@ -613,14 +630,14 @@
     }
 
     .music-select {
-      min-width: 160px;
+      min-width: 150px;
       padding: 6px 10px;
       border-radius: 999px;
       border: 1px solid rgba(148, 163, 184, 0.7);
       background: rgba(15, 23, 42, 0.95);
       color: #e5e7eb;
       font-size: 12px;
-      flex: 1 1 160px;
+      flex: 0 0 auto;
     }
 
     .music-select:focus {
@@ -712,7 +729,16 @@
             </div>
             <div class="storybook-header-right">
               <button id="listenStoryBtn" class="ghost-btn" disabled>🔊 Listen</button>
-              <button id="musicToggleBtn" class="ghost-btn" disabled>🎵 Music off</button>
+              <div class="music-controls">
+                <button id="musicToggleBtn" class="ghost-btn" disabled>🎵 Music off</button>
+                <select id="musicPreset" class="music-select" disabled>
+                  <option value="dreamtales" selected>DreamTales – Night lullaby</option>
+                  <option value="twinkle">Twinkle</option>
+                  <option value="pianos">Soft piano ambience</option>
+                  <option value="flute">Flute</option>
+                  <option value="none">No music</option>
+                </select>
+              </div>
               <div class="storybook-pill" id="storybookPill">
                 Ready for bedtime
               </div>
@@ -748,14 +774,7 @@
             <div class="actions-row">
               <button id="downloadPdfBtn" class="primary-btn" disabled>Download PDF</button>
 
-              <select id="musicPreset" class="music-select" disabled>
-                <option value="dreamtales" selected>DreamTales – Night lullaby</option>
-                <option value="twinkle">Twinkle</option>
-                <option value="pianos">Soft piano ambience</option>
-                <option value="flute">Flute</option>
-                <option value="none">No music</option>
-              </select>
-
+              <!-- hidden checkbox that powers Music logic -->
               <label class="music-toggle">
                 <input type="checkbox" id="musicToggle" checked />
                 <span>Background music</span>
@@ -841,6 +860,7 @@
     const moralText = document.getElementById("moralText");
     const prevPageBtn = document.getElementById("prevPage");
     const nextPageBtn = document.getElementById("nextPage");
+    const pageInfo = document.getElementById("pageInfo");
     const authBtn = document.getElementById("authBtn");
     const authStatus = document.getElementById("authStatus");
     const saveStoryBtn = document.getElementById("saveStoryBtn");
@@ -885,7 +905,6 @@
         return;
       }
 
-      // bgMusicEl.src becomes absolute; compare by suffix
       if (!bgMusicEl.src || !bgMusicEl.src.endsWith(url)) {
         bgMusicEl.src = url;
       }
@@ -972,7 +991,6 @@
           return;
         }
 
-        // restart with new track
         stopBackgroundMusic();
         startBackgroundMusic();
       });
@@ -1454,7 +1472,7 @@
       downloadPdfBtn.addEventListener("click", downloadStoryPdf);
     }
 
-    // ---------- TTS helpers (OpenAI via Netlify function) ----------
+    // ---------- TTS helpers ----------
 
     function getLanguageCode(language) {
       switch (language) {
@@ -1512,12 +1530,11 @@
     }
     
     function getSelectedVoiceId() {
-      if (!voiceSelect) return "alloy"; // default
+      if (!voiceSelect) return "alloy";
 
       const choice = voiceSelect.value || "soft";
       switch (choice) {
         case "calm-male":
-          // Alternate voice with a slightly deeper tone
           return "verse";
         case "soft":
         default:
@@ -1730,7 +1747,7 @@
       });
     }
 
-    // ---------- cover illustration (UPDATED) ----------
+    // ---------- cover illustration ----------
 
     async function generateCoverIllustration(childName, age, theme, illustrationPrompts) {
       try {
@@ -1779,7 +1796,6 @@ Requirements:
 
         coverImageUrl = url;
 
-        // re-render first page if we're on it, to show the cover immediately
         if (currentPageIndex === 0 && storyPages.length) {
           renderPage();
         }
@@ -1928,7 +1944,7 @@ Rules:
         currentPageIndex = 0;
         renderPage();
 
-        // Now that we have illustrationPrompts, generate cover art in the background
+        // Generate cover art in the background using illustration prompts
         generateCoverIllustration(childName, age, theme, illustrationPrompts);
 
         titleEl.textContent = "Bedtime story for " + childName;
@@ -1944,7 +1960,6 @@ Rules:
 
         enterStoryMode();
 
-        // auto-start music if toggle is on and preset is not "none"
         musicEnabled = !!(musicToggle && musicToggle.checked);
         if (musicEnabled && currentMusicPreset !== "none") {
           startBackgroundMusic();
