@@ -247,21 +247,21 @@
     }
 
     .storybook-header {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 4px;
-    }
+          position: relative;
+          z-index: 1;
+          display: flex;
+          align-items: center;          /* vertically center all controls */
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 6px;
+        }
 
     .storybook-header-left {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 0;
-    }
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+          }
 
     .header-home-btn {
       width: auto;
@@ -294,23 +294,26 @@
       max-width: 240px;
     }
 
-    .storybook-header-right {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      align-items: flex-end;
-    }
+   .storybook-header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;              /* allows wrapping on small screens */
+            justify-content: flex-end;
+          }
 
     .audio-bar {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 6px;
-      border-radius: 999px;
-      background: radial-gradient(circle at top left, rgba(15,23,42,0.95), rgba(15,23,42,0.8));
-      border: 1px solid rgba(148,163,184,0.6);
-      box-shadow: 0 12px 24px rgba(15,23,42,0.85);
-    }
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 6px;
+            border-radius: 999px;
+            background: radial-gradient(circle at top left, rgba(15,23,42,0.95), rgba(15,23,42,0.8));
+            border: 1px solid rgba(148,163,184,0.6);
+            box-shadow: 0 12px 24px rgba(15,23,42,0.85);
+            flex-wrap: nowrap;
+          }
+
 
     .audio-btn {
       border-radius: 999px;
@@ -358,14 +361,17 @@
     }
 
     .storybook-pill {
-      font-size: 11px;
-      padding: 4px 8px;
-      border-radius: 999px;
-      background: var(--accent-gold-soft);
-      color: #facc15;
-      border: 1px solid rgba(250, 204, 21, 0.5);
-      max-width: 210px;
-    }
+          font-size: 11px;
+          padding: 4px 8px;
+          border-radius: 999px;
+          background: var(--accent-gold-soft);
+          color: #facc15;
+          border: 1px solid rgba(250, 204, 21, 0.5);
+          max-width: 220px;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+          overflow: hidden;
+        }
 
     .storybook-body {
       flex: 1;
@@ -2056,3 +2062,4 @@ Rules:
   </script>
 </body>
 </html>
+
