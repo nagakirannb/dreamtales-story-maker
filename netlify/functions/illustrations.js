@@ -1,7 +1,7 @@
 // netlify/functions/illustrations.js
 
 // Netlify function to generate a single cover image using OpenAI gpt-image-1
-// Returns: { url: "data:image/png;base64,..." } or { url: "https://..." }
+// Returns: { url: "...", imageUrl: "..." }
 
 exports.handler = async (event, context) => {
   // CORS preflight
@@ -70,7 +70,8 @@ exports.handler = async (event, context) => {
         prompt,
         n: 1,
         size: "1024x1024",
-        // no response_format here – we accept default (base64)
+        // Ask explicitly for base64; we still handle URL if OpenAI changes defaults.
+        response_format: "b64_json",
       }),
     });
 
@@ -112,13 +113,16 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // NEW: also expose imageUrl for the new front-end, while keeping `url` for backwards compatibility
+    const payload = { url, imageUrl: url };
+
     return {
       statusCode: 200,
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
       },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify(payload),
     };
   } catch (err) {
     console.error("Illustrations function caught error:", err);
