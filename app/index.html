@@ -246,6 +246,134 @@
       pointer-events: none;
       z-index: 0;
     }
+    .storybook {
+  /* subtle glass card look */
+  background: radial-gradient(circle at top left, #0b1220, #020617);
+  border-radius: 22px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  box-shadow:
+    0 26px 60px rgba(15, 23, 42, 0.85),
+    0 0 0 1px rgba(15, 23, 42, 0.9);
+}
+
+/* Title looks more like a “tab” */
+.storybook-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #e5e7eb;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: radial-gradient(circle at top left, rgba(15,23,42,0.9), rgba(15,23,42,0.6));
+  border: 1px solid rgba(148,163,184,0.3);
+}
+
+/* --- AUDIO BAR --- */
+
+.storybook-header-right {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.audio-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 999px;
+  background: radial-gradient(circle at top left, rgba(15,23,42,0.95), rgba(15,23,42,0.8));
+  border: 1px solid rgba(148,163,184,0.6);
+  box-shadow: 0 12px 24px rgba(15,23,42,0.85);
+}
+
+.audio-btn {
+  border-radius: 999px;
+  border: 1px solid rgba(148,163,184,0.5);
+  padding: 7px 14px;
+  font-size: 12px;
+  background: rgba(15,23,42,0.92);
+  color: #e5e7eb;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.audio-btn-primary {
+  background: linear-gradient(to right, #facc15, #fb923c);
+  border-color: rgba(250,204,21,0.8);
+  color: #42210b;
+  font-weight: 600;
+  box-shadow: 0 10px 20px rgba(248, 181, 63, 0.35);
+}
+
+.audio-btn-secondary {
+  font-weight: 500;
+}
+
+.audio-btn:disabled {
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+.audio-btn:hover:not(:disabled) {
+  transform: translateY(-0.5px);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.7);
+}
+
+.music-select-compact {
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  background: rgba(15, 23, 42, 0.95);
+  color: #e5e7eb;
+  font-size: 11px;
+  padding: 6px 10px;
+  max-width: 180px;
+}
+
+/* hint text in footer */
+.music-hint {
+  font-size: 11px;
+  color: #9ca3af;
+  flex: 1 1 100%;
+}
+
+/* --- STORY PAGE LOOK --- */
+
+.storybook-page {
+  background:
+    radial-gradient(circle at top, #fefce8 0, #f9fafb 42%, #fef3c7 100%);
+  border-radius: 18px;
+  padding: 18px 22px 20px;
+  box-shadow:
+    0 0 0 1px rgba(252, 211, 77, 0.7),
+    0 18px 34px rgba(15, 23, 42, 0.65);
+  line-height: 1.8;
+  font-size: 15px;
+}
+
+/* paragraphs look more like a printed book */
+.storybook-page p {
+  margin: 0 0 10px;
+}
+
+.storybook-page p:first-of-type::first-letter {
+  font-size: 1.35em;
+  font-weight: 700;
+}
+
+/* cover image slightly bigger & framed */
+.page-image {
+  max-height: 280px;
+  margin-bottom: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(252, 211, 77, 0.9);
+  box-shadow:
+    0 16px 32px rgba(15, 23, 42, 0.6),
+    0 0 0 1px rgba(255,255,255,0.9);
+}
+
 
     .storybook-header {
       position: relative;
@@ -728,22 +856,34 @@
               </div>
             </div>
             <div class="storybook-header-right">
-              <button id="listenStoryBtn" class="ghost-btn" disabled>🔊 Listen</button>
-              <div class="music-controls">
-                <button id="musicToggleBtn" class="ghost-btn" disabled>🎵 Music off</button>
-                <select id="musicPreset" class="music-select" disabled>
-                  <option value="dreamtales" selected>DreamTales – Night lullaby</option>
-                  <option value="twinkle">Twinkle</option>
-                  <option value="pianos">Soft piano ambience</option>
-                  <option value="flute">Flute</option>
-                  <option value="none">No music</option>
-                </select>
-              </div>
-              <div class="storybook-pill" id="storybookPill">
-                Ready for bedtime
-              </div>
-            </div>
-          </div>
+                        <div class="audio-bar">
+                          <button id="listenStoryBtn" class="audio-btn audio-btn-primary" disabled>
+                            🔊 Listen
+                          </button>
+                      
+                          <button id="musicToggleBtn" class="audio-btn audio-btn-secondary" disabled>
+                            🎵 Music off
+                          </button>
+                      
+                          <select id="musicPreset" class="music-select-compact" disabled>
+                            <option value="dreamtales" selected>DreamTales – Night lullaby</option>
+                            <option value="twinkle">Twinkle</option>
+                            <option value="pianos">Soft piano ambience</option>
+                            <option value="flute">Flute</option>
+                            <option value="none">No music</option>
+                          </select>
+                        </div>
+                      
+                        <div class="storybook-pill" id="storybookPill">
+                          Ready for bedtime
+                        </div>
+                      </div>
+          
+            <span class="music-hint" id="musicHint">
+              🎵 Use the music controls above to set the mood.
+            </span>
+
+
 
           <div class="storybook-body">
             <div class="storybook-page" id="storybookPage">
@@ -894,107 +1034,104 @@
 
     // ----- Background music helpers -----
 
-    function ensureMusicSource() {
-      if (!bgMusicEl) return;
+    // ----- Background music helpers -----
 
-      const url = MUSIC_PRESETS[currentMusicPreset] || null;
+function ensureMusicSource() {
+  if (!bgMusicEl) return;
 
-      if (!url) {
-        bgMusicEl.pause();
-        bgMusicEl.removeAttribute("src");
-        return;
-      }
+  const url = MUSIC_PRESETS[currentMusicPreset] || null;
 
-      if (!bgMusicEl.src || !bgMusicEl.src.endsWith(url)) {
-        bgMusicEl.src = url;
-      }
-      bgMusicEl.loop = true;
-      bgMusicEl.volume = BG_MUSIC_BASE_VOLUME;
-    }
+  if (!url) {
+    bgMusicEl.pause();
+    bgMusicEl.removeAttribute("src");
+    return;
+  }
 
-    function startBackgroundMusic() {
-      if (!bgMusicEl || !musicToggle || !musicToggle.checked) return;
-      ensureMusicSource();
-      const playPromise = bgMusicEl.play();
-      if (playPromise && typeof playPromise.then === "function") {
-        playPromise.catch(err => {
-          console.warn("Background music could not autoplay:", err);
-          statusEl.textContent = "Tap Music again to start background audio.";
-        });
-      }
-    }
+  if (!bgMusicEl.src || !bgMusicEl.src.endsWith(url)) {
+    bgMusicEl.src = url;
+  }
+  bgMusicEl.loop = true;
+  bgMusicEl.volume = BG_MUSIC_BASE_VOLUME;
+}
 
-    function stopBackgroundMusic() {
-      if (!bgMusicEl) return;
-      bgMusicEl.pause();
-    }
+function startBackgroundMusic() {
+  if (!bgMusicEl) return;
+  if (!MUSIC_PRESETS[currentMusicPreset]) return;
 
-    function duckMusicForTts() {
-      if (!bgMusicEl || !musicToggle || !musicToggle.checked) return;
-      if (!MUSIC_PRESETS[currentMusicPreset]) return;
+  ensureMusicSource();
+  const playPromise = bgMusicEl.play();
+  if (playPromise && typeof playPromise.then === "function") {
+    playPromise.catch(err => {
+      console.warn("Background music could not autoplay:", err);
+      statusEl.textContent = "Tap Music again to start background audio.";
+    });
+  }
+}
 
-      ensureMusicSource();
-      bgMusicEl.volume = BG_MUSIC_DUCKED_VOLUME;
+function stopBackgroundMusic() {
+  if (!bgMusicEl) return;
+  bgMusicEl.pause();
+}
 
-      if (bgMusicEl.paused) {
-        const p = bgMusicEl.play();
-        if (p && typeof p.then === "function") {
-          p.catch(err => {
-            console.warn("BG music couldn't start during TTS:", err);
-          });
-        }
-      }
-    }
+function duckMusicForTts() {
+  if (!bgMusicEl) return;
+  if (!MUSIC_PRESETS[currentMusicPreset]) return;
 
-    function restoreMusicAfterTts() {
-      if (!bgMusicEl) return;
+  ensureMusicSource();
+  bgMusicEl.volume = BG_MUSIC_DUCKED_VOLUME;
 
-      if (!musicToggle || !musicToggle.checked || !MUSIC_PRESETS[currentMusicPreset]) {
-        bgMusicEl.pause();
-        return;
-      }
-
-      bgMusicEl.volume = BG_MUSIC_BASE_VOLUME;
-    }
-
-    if (musicToggle) {
-      musicToggle.addEventListener("change", () => {
-        if (musicToggle.checked) {
-          musicEnabled = true;
-          if (!isTtsPlaying && storyPages.length) {
-            startBackgroundMusic();
-          }
-        } else {
-          musicEnabled = false;
-          stopBackgroundMusic();
-        }
+  if (bgMusicEl.paused) {
+    const p = bgMusicEl.play();
+    if (p && typeof p.then === "function") {
+      p.catch(err => {
+        console.warn("BG music couldn't start during TTS:", err);
       });
     }
+  }
+}
 
-    if (musicToggleBtn && musicToggle) {
-      musicToggleBtn.addEventListener("click", () => {
-        if (!storyPages.length) return;
-        musicToggle.checked = !musicToggle.checked;
-        musicToggle.dispatchEvent(new Event("change"));
-        musicToggleBtn.textContent = musicToggle.checked ? "🎵 Music on" : "🎵 Music off";
-      });
+function restoreMusicAfterTts() {
+  if (!bgMusicEl) return;
+
+  if (!musicEnabled || !MUSIC_PRESETS[currentMusicPreset]) {
+    bgMusicEl.pause();
+    return;
+  }
+  bgMusicEl.volume = BG_MUSIC_BASE_VOLUME;
+}
+
+// Top “Music on/off” pill
+if (musicToggleBtn) {
+  musicToggleBtn.addEventListener("click", () => {
+    if (!storyPages.length) return;
+
+    musicEnabled = !musicEnabled;
+    if (musicEnabled && currentMusicPreset !== "none") {
+      startBackgroundMusic();
+      musicToggleBtn.textContent = "🎵 Music on";
+    } else {
+      stopBackgroundMusic();
+      musicToggleBtn.textContent = "🎵 Music off";
+    }
+  });
+}
+
+// Dropdown for choosing track
+if (musicPresetSelect) {
+  musicPresetSelect.addEventListener("change", () => {
+    currentMusicPreset = musicPresetSelect.value || "none";
+
+    if (!storyPages.length) return;
+
+    if (!musicEnabled || currentMusicPreset === "none") {
+      stopBackgroundMusic();
+      return;
     }
 
-    if (musicPresetSelect) {
-      musicPresetSelect.addEventListener("change", () => {
-        currentMusicPreset = musicPresetSelect.value || "none";
-
-        if (!storyPages.length) return;
-
-        if (!musicToggle || !musicToggle.checked || currentMusicPreset === "none") {
-          stopBackgroundMusic();
-          return;
-        }
-
-        stopBackgroundMusic();
-        startBackgroundMusic();
-      });
-    }
+    stopBackgroundMusic();
+    startBackgroundMusic();
+  });
+}
 
     // ---------- helpers for auth + storage ----------
 
@@ -1729,7 +1866,7 @@
       appShell.classList.add("story-mode");
     }
 
-    function exitStoryMode() {
+   function exitStoryMode() {
       if (!appShell) return;
       appShell.classList.remove("story-mode");
       stopStoryAudio();
@@ -1737,9 +1874,9 @@
       stopBackgroundMusic();
       musicEnabled = false;
       if (musicToggleBtn) musicToggleBtn.textContent = "🎵 Music off";
-      if (musicToggle) musicToggle.checked = false;
       statusEl.textContent = "Ready for a new bedtime story.";
     }
+
 
     if (homeBtn) {
       homeBtn.addEventListener("click", () => {
@@ -1943,9 +2080,8 @@ Rules:
         currentIllustrationPrompts = illustrationPrompts;
         currentPageIndex = 0;
         renderPage();
-
-        // Generate cover art in the background using illustration prompts
-        generateCoverIllustration(childName, age, theme, illustrationPrompts);
+        // now that we have illustration prompts, request a cover image
+        generateCoverIllustration(childName, age, theme, currentIllustrationPrompts);     
 
         titleEl.textContent = "Bedtime story for " + childName;
         statusEl.textContent =
@@ -2049,3 +2185,4 @@ Rules:
   </script>
 </body>
 </html>
+
