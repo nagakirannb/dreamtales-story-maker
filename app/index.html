@@ -1736,9 +1736,47 @@
     // ---------- story generation ----------
 
     async function generateCoverIllustration(childName, age, theme, illustrationPrompts) {
-      // parked for now – not called in this release
-      return;
-    }
+              try {
+                if (!illustrationPrompts || !illustrationPrompts.length) return;
+            
+                const primaryPrompt = illustrationPrompts[0];
+            
+                const prompt = `
+            Children's bedtime storybook cover illustration.
+            Child's name: ${childName} (age ${age}).
+            Theme/moral: ${theme}.
+            Scene: ${primaryPrompt}.
+            Style: soft, warm, dreamy, pastel colors, magical night atmosphere, friendly characters, no scary elements.
+            `.trim();
+            
+                const res = await fetch("/.netlify/functions/illustrations", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ prompt })
+                });
+            
+                if (!res.ok) {
+                  console.error("Illustration API error:", await res.text());
+                  return;
+                }
+            
+                const data = await res.json();
+                if (!data || !data.imageUrl) {
+                  console.error("No imageUrl in illustration response");
+                  return;
+                }
+            
+                coverImageUrl = data.imageUrl;
+            
+                // re-render first page if we're on it, to show the cover immediately
+                if (currentPageIndex === 0 && storyPages.length) {
+                  renderPage();
+                }
+              } catch (err) {
+                console.error("Illustration generation failed:", err);
+              }
+      }
+
 
     async function generateStory() {
       const childName = document.getElementById("childName").value.trim();
@@ -1788,6 +1826,7 @@
       currentIllustrationPrompts = [];
       coverImageUrl = null;
       renderPage();
+      generateCoverIllustration(childName, age, theme, currentIllustrationPrompts);
 
       const userContent = `
 Create a bedtime story for a child.
@@ -1977,6 +2016,7 @@ Rules:
   </script>
 </body>
 </html>
+
 
 
 
