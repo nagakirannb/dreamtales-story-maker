@@ -250,19 +250,20 @@
           position: relative;
           z-index: 1;
           display: flex;
-          align-items: center;          /* vertically center all controls */
+          flex-wrap: wrap;           /* lets the pill sit on a neat 2nd row */
+          align-items: center;
           justify-content: space-between;
-          gap: 16px;
-          margin-bottom: 6px;
+          gap: 10px 16px;
+          margin-bottom: 8px;
         }
-
+        
     .storybook-header-left {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            min-width: 0;
-          }
-
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+          flex: 1 1 auto;            /* title area grows */
+        }
     .header-home-btn {
       width: auto;
       font-size: 11px;
@@ -280,99 +281,114 @@
       box-shadow: 0 4px 12px rgba(15, 23, 42, 0.7);
     }
 
-    .storybook-title {
-      font-weight: 600;
-      font-size: 14px;
-      color: #e5e7eb;
-      padding: 6px 12px;
-      border-radius: 999px;
-      background: radial-gradient(circle at top left, rgba(15,23,42,0.9), rgba(15,23,42,0.6));
-      border: 1px solid rgba(148,163,184,0.3);
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
-      max-width: 240px;
-    }
+    /* Title chip */
+.storybook-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #e5e7eb;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: radial-gradient(circle at top left, rgba(15,23,42,0.9), rgba(15,23,42,0.6));
+  border: 1px solid rgba(148,163,184,0.3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-   .storybook-header-right {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;              /* allows wrapping on small screens */
-            justify-content: flex-end;
-          }
+.storybook-header-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-width: 0;
+  flex-wrap: wrap;           /* dropdown can wrap under Listen if needed */
+}
 
-    .audio-bar {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 6px;
-            border-radius: 999px;
-            background: radial-gradient(circle at top left, rgba(15,23,42,0.95), rgba(15,23,42,0.8));
-            border: 1px solid rgba(148,163,184,0.6);
-            box-shadow: 0 12px 24px rgba(15,23,42,0.85);
-            flex-wrap: nowrap;
-          }
+/* audio bar stays as a compact pill */
+.audio-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 999px;
+  background: radial-gradient(circle at top left, rgba(15,23,42,0.95), rgba(15,23,42,0.8));
+  border: 1px solid rgba(148,163,184,0.6);
+  box-shadow: 0 12px 24px rgba(15,23,42,0.85);
+}
 
+   .audio-btn {
+  border-radius: 999px;
+  border: 1px solid rgba(148,163,184,0.5);
+  padding: 7px 14px;
+  font-size: 12px;
+  background: rgba(15,23,42,0.92);
+  color: #e5e7eb;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
 
-    .audio-btn {
-      border-radius: 999px;
-      border: 1px solid rgba(148,163,184,0.5);
-      padding: 7px 14px;
-      font-size: 12px;
-      background: rgba(15,23,42,0.92);
-      color: #e5e7eb;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      white-space: nowrap;
-    }
+.audio-btn-primary {
+  background: linear-gradient(to right, #facc15, #fb923c);
+  border-color: rgba(250,204,21,0.8);
+  color: #42210b;
+  font-weight: 600;
+  box-shadow: 0 10px 20px rgba(248, 181, 63, 0.35);
+}
 
-    .audio-btn-primary {
-      background: linear-gradient(to right, #facc15, #fb923c);
-      border-color: rgba(250,204,21,0.8);
-      color: #42210b;
-      font-weight: 600;
-      box-shadow: 0 10px 20px rgba(248, 181, 63, 0.35);
-    }
+   .audio-btn-secondary {
+  font-weight: 500;
+}
 
-    .audio-btn-secondary {
-      font-weight: 500;
-    }
+.audio-btn:disabled {
+  opacity: 0.55;
+  box-shadow: none;
+}
 
-    .audio-btn:disabled {
-      opacity: 0.55;
-      box-shadow: none;
-    }
+.audio-btn:hover:not(:disabled) {
+  transform: translateY(-0.5px);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.7);
+}
 
-    .audio-btn:hover:not(:disabled) {
-      transform: translateY(-0.5px);
-      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.7);
-    }
+/* compact dropdown */
+.music-select-compact {
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  background: rgba(15, 23, 42, 0.95);
+  color: #e5e7eb;
+  font-size: 11px;
+  padding: 6px 10px;
+  max-width: 180px;
+}
 
-    .music-select-compact {
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.7);
-      background: rgba(15, 23, 42, 0.95);
-      color: #e5e7eb;
-      font-size: 11px;
-      padding: 6px 10px;
-      max-width: 180px;
-    }
-
-    .storybook-pill {
-          font-size: 11px;
-          padding: 4px 8px;
-          border-radius: 999px;
-          background: var(--accent-gold-soft);
-          color: #facc15;
-          border: 1px solid rgba(250, 204, 21, 0.5);
-          max-width: 220px;
-          white-space: nowrap;
-          text-overflow: ellipsis;
-          overflow: hidden;
-        }
-
+/* moral/metadata pill sits on its own row, aligned right */
+.storybook-pill {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--accent-gold-soft);
+  color: #facc15;
+  border: 1px solid rgba(250, 204, 21, 0.6);
+  margin-top: 2px;
+  flex: 1 1 100%;           /* new row under controls */
+  text-align: right;
+}
+    /* On smaller screens, let controls wrap nicely */
+@media (max-width: 720px) {
+  .storybook-header {
+    align-items: flex-start;
+  }
+  .storybook-header-right {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+  }
+  .storybook-pill {
+    text-align: left;
+  }
+}
+    
     .storybook-body {
       flex: 1;
       overflow: hidden;
@@ -2062,4 +2078,5 @@ Rules:
   </script>
 </body>
 </html>
+
 
