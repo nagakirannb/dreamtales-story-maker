@@ -246,50 +246,30 @@
       z-index: 0;
     }
 
-    /* HEADER LAYOUT */
+    /* ---------- STORYBOOK HEADER LAYOUT ---------- */
 
     .storybook-header {
       position: relative;
       z-index: 1;
       display: flex;
-      flex-wrap: wrap;          /* allows a second row for the pill */
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px 16px;
+      flex-direction: column;
+      gap: 10px;
       margin-bottom: 8px;
     }
 
-    .storybook-header-left {
-      display: flex;
-      align-items: center;
+    /* Row 1: title (2/3) + New story (1/3) */
+    .storybook-header-top {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
       gap: 8px;
-      min-width: 0;
-      flex: 1 1 auto;          /* grows with available space */
+      align-items: center;
     }
 
-    .header-home-btn {
-      width: auto;
-      font-size: 11px;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      background: rgba(15, 23, 42, 0.95);
-      color: #e5e7eb;
-      padding: 4px 8px;
-      cursor: pointer;
-      display: none;
-    }
-
-    .header-home-btn:hover {
-      background: rgba(15, 23, 42, 1);
-      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.7);
-    }
-
-    /* Title chip */
     .storybook-title {
       font-weight: 600;
       font-size: 14px;
       color: #e5e7eb;
-      padding: 6px 12px;
+      padding: 8px 12px;
       border-radius: 999px;
       background: radial-gradient(circle at top left, rgba(15,23,42,0.9), rgba(15,23,42,0.6));
       border: 1px solid rgba(148,163,184,0.3);
@@ -298,38 +278,45 @@
       text-overflow: ellipsis;
     }
 
-    .storybook-header-right {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 8px;
-      flex: 0 0 auto;
-      min-width: 0;
+    .header-home-btn {
+      width: 100%;
+      font-size: 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 0.98);
+      color: #e5e7eb;
+      padding: 8px 12px;
+      cursor: pointer;
+      text-align: center;
+      display: none; /* becomes block in story mode */
     }
 
-    /* audio bar stays as a compact pill 
-    .audio-bar {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 6px;
-      border-radius: 999px;
-      background: radial-gradient(circle at top left, rgba(15,23,42,0.95), rgba(15,23,42,0.8));
-      border: 1px solid rgba(148,163,184,0.6);
-      box-shadow: 0 12px 24px rgba(15,23,42,0.85);
-    } */
+    .header-home-btn:hover {
+      background: rgba(15, 23, 42, 1);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.7);
+    }
+
+    /* Row 2: Listen / Music toggle / Preset – equal width */
+    .storybook-header-controls {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
 
     .audio-btn {
       border-radius: 999px;
       border: 1px solid rgba(148,163,184,0.5);
-      padding: 7px 14px;
+      padding: 8px 14px;
       font-size: 12px;
       background: rgba(15,23,42,0.92);
       color: #e5e7eb;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 6px;
       white-space: nowrap;
+      width: 100%;   /* make them same width */
+      margin-top: 0; /* override global button margin */
     }
 
     .audio-btn-primary {
@@ -354,41 +341,28 @@
       box-shadow: 0 8px 18px rgba(15, 23, 42, 0.7);
     }
 
-    /* compact dropdown */
     .music-select-compact {
       border-radius: 999px;
       border: 1px solid rgba(148, 163, 184, 0.7);
       background: rgba(15, 23, 42, 0.95);
       color: #e5e7eb;
       font-size: 11px;
-      padding: 6px 10px;
-      max-width: 180px;
+      padding: 8px 10px;
+      width: 100%;
+      margin-top: 0; /* align height with buttons */
     }
 
-    /* theme / metadata pill – full width row at bottom of header */
+    /* Keep the old pill for JS, but hide it visually */
     .storybook-pill {
-      font-size: 11px;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: var(--accent-gold-soft);
-      color: #facc15;
-      border: 1px solid rgba(250, 204, 21, 0.6);
-      margin-top: 2px;
-      flex: 1 1 100%;           /* makes it its own row */
-      text-align: center;
+      display: none;
     }
 
-    /* Responsive tweaking */
     @media (max-width: 720px) {
-      .storybook-header {
-        align-items: flex-start;
+      .storybook-header-top {
+        grid-template-columns: 1fr; /* stack title and New story on very small screens */
       }
-      .storybook-header-right {
-        flex: 1 1 100%;
-        justify-content: flex-start;
-      }
-      .storybook-pill {
-        text-align: left;
+      .header-home-btn {
+        width: auto;
       }
     }
 
@@ -770,37 +744,35 @@
         <!-- RIGHT: story viewer -->
         <div class="storybook">
           <div class="storybook-header">
-            <div class="storybook-header-left">
-              <button id="homeBtn" class="header-home-btn" type="button">← New story</button>
+            <div class="storybook-header-top">
               <div class="storybook-title" id="storybookTitle">
                 Your storybook will appear here
               </div>
+              <button id="homeBtn" class="header-home-btn" type="button">
+                ← New story
+              </button>
             </div>
 
-            <div class="storybook-header-right">
-              <div class="audio-bar">
-                <button id="listenStoryBtn" class="audio-btn audio-btn-primary" disabled>
-                  🔊 Listen
-                </button>
+            <div class="storybook-header-controls">
+              <button id="listenStoryBtn" class="audio-btn audio-btn-primary" disabled>
+                🔊 Listen
+              </button>
 
-                <button id="musicToggleBtn" class="audio-btn audio-btn-secondary" disabled>
-                  🎵 Music off
-                </button>
+              <button id="musicToggleBtn" class="audio-btn audio-btn-secondary" disabled>
+                🎵 Music off
+              </button>
 
-                <select id="musicPreset" class="music-select-compact" disabled>
-                  <option value="dreamtales" selected>DreamTales – Night lullaby</option>
-                  <option value="twinkle">Twinkle</option>
-                  <option value="pianos">Soft piano ambience</option>
-                  <option value="flute">Flute</option>
-                  <option value="none">No music</option>
-                </select>
-              </div>
+              <select id="musicPreset" class="music-select-compact" disabled>
+                <option value="dreamtales" selected>DreamTales – Night lullaby</option>
+                <option value="twinkle">Twinkle</option>
+                <option value="pianos">Soft piano ambience</option>
+                <option value="flute">Flute</option>
+                <option value="none">No music</option>
+              </select>
             </div>
 
-            <!-- SECOND ROW: theme / mode pill -->
-            <div class="storybook-pill" id="storybookPill">
-              Ready for bedtime
-            </div>
+            <!-- hidden pill – kept only so JS that updates pillEl still works -->
+            <div class="storybook-pill" id="storybookPill"></div>
           </div>
 
           <div class="storybook-body">
@@ -870,7 +842,7 @@
   <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
-  <script>
+   <script>
     let storyPages = [];
     let currentPageIndex = 0;
     let currentMoralLine = "";
@@ -2083,6 +2055,7 @@ Rules:
   </script>
 </body>
 </html>
+
 
 
 
