@@ -246,23 +246,42 @@
       z-index: 0;
     }
 
-    /* ---------- STORYBOOK HEADER LAYOUT ---------- */
+    /* --------- STORYBOOK HEADER (3 ROWS) ---------- */
 
     .storybook-header {
       position: relative;
       z-index: 1;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
       margin-bottom: 8px;
     }
 
-    /* Row 1: title (2/3) + New story (1/3) */
+    /* Row 1: New story (1/3) + title (2/3) */
     .storybook-header-top {
       display: grid;
-      grid-template-columns: 2fr 1fr;
+      grid-template-columns: 1fr 2fr;
       gap: 8px;
       align-items: center;
+    }
+
+    .header-home-btn {
+      width: 100%;
+      font-size: 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 0.98);
+      color: #e5e7eb;
+      padding: 8px 12px;
+      cursor: pointer;
+      text-align: center;
+      display: none; /* becomes visible in story-mode */
+      margin-top: 0;
+    }
+
+    .header-home-btn:hover {
+      background: rgba(15, 23, 42, 1);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.7);
     }
 
     .storybook-title {
@@ -278,29 +297,12 @@
       text-overflow: ellipsis;
     }
 
-    .header-home-btn {
-      width: 100%;
-      font-size: 12px;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.6);
-      background: rgba(15, 23, 42, 0.98);
-      color: #e5e7eb;
-      padding: 8px 12px;
-      cursor: pointer;
-      text-align: center;
-      display: none; /* becomes block in story mode */
-    }
-
-    .header-home-btn:hover {
-      background: rgba(15, 23, 42, 1);
-      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.7);
-    }
-
-    /* Row 2: Listen / Music toggle / Preset – equal width */
+    /* Row 2: three equal controls */
     .storybook-header-controls {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 8px;
+      align-items: stretch;
     }
 
     .audio-btn {
@@ -315,8 +317,8 @@
       justify-content: center;
       gap: 6px;
       white-space: nowrap;
-      width: 100%;   /* make them same width */
-      margin-top: 0; /* override global button margin */
+      width: 100%;
+      margin-top: 0;
     }
 
     .audio-btn-primary {
@@ -349,20 +351,27 @@
       font-size: 11px;
       padding: 8px 10px;
       width: 100%;
-      margin-top: 0; /* align height with buttons */
+      margin-top: 0;
     }
 
-    /* Keep the old pill for JS, but hide it visually */
+    /* Row 3: theme pill */
     .storybook-pill {
-      display: none;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--accent-gold-soft);
+      color: #facc15;
+      border: 1px solid rgba(250, 204, 21, 0.6);
+      text-align: right;
+      align-self: stretch;
     }
 
     @media (max-width: 720px) {
       .storybook-header-top {
-        grid-template-columns: 1fr; /* stack title and New story on very small screens */
+        grid-template-columns: 1fr;
       }
-      .header-home-btn {
-        width: auto;
+      .storybook-pill {
+        text-align: left;
       }
     }
 
@@ -745,12 +754,12 @@
         <div class="storybook">
           <div class="storybook-header">
             <div class="storybook-header-top">
-              <div class="storybook-title" id="storybookTitle">
-                Your storybook will appear here
-              </div>
               <button id="homeBtn" class="header-home-btn" type="button">
                 ← New story
               </button>
+              <div class="storybook-title" id="storybookTitle">
+                Your storybook will appear here
+              </div>
             </div>
 
             <div class="storybook-header-controls">
@@ -771,8 +780,9 @@
               </select>
             </div>
 
-            <!-- hidden pill – kept only so JS that updates pillEl still works -->
-            <div class="storybook-pill" id="storybookPill"></div>
+            <div class="storybook-pill" id="storybookPill">
+              Ready for bedtime
+            </div>
           </div>
 
           <div class="storybook-body">
@@ -842,7 +852,7 @@
   <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
-   <script>
+  <script>
     let storyPages = [];
     let currentPageIndex = 0;
     let currentMoralLine = "";
@@ -2055,8 +2065,3 @@ Rules:
   </script>
 </body>
 </html>
-
-
-
-
-
