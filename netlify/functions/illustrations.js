@@ -79,7 +79,7 @@ exports.handler = async (event, context) => {
           prompt,
           n: 1,
           size: "1024x1024",
-          quality: "standard",
+          quality: "auto",
           // style: "natural", // optional
         }),
       }
