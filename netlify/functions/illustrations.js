@@ -60,7 +60,7 @@ exports.handler = async (event, context) => {
   // 🔧 KEY CHANGE: give OpenAI more time than before
   // If Netlify’s own function limit is lower than this, you may still hit a 504
   // from Netlify—but at least *we* won’t kill it early.
-  const IMAGE_TIMEOUT_MS = 22000; // 22 seconds instead of ~9.5s
+  const IMAGE_TIMEOUT_MS = 28000; // 22 seconds instead of ~9.5s
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
