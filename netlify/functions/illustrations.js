@@ -71,7 +71,7 @@ exports.handler = async (event, context) => {
         n: 1,
         size: "1024x1024",
         // Ask explicitly for base64; we still handle URL if OpenAI changes defaults.
-        response_format: "b64_json",
+        //response_format: "b64_json",
       }),
     });
 
