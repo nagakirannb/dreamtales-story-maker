@@ -1596,6 +1596,7 @@
 
       if (contentType.includes("application/json")) {
         const data = await res.json();
+        console.log("Illustration API result:", data);
         if (!data.audio) {
           throw new Error("No 'audio' field in TTS JSON response");
         }
@@ -1791,6 +1792,8 @@ Requirements:
 - No text on the image.${sceneHint}
         `.trim();
 
+        console.log("Illustration request prompts:", illustrationPrompts);
+
         const res = await fetch("/.netlify/functions/illustrations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1815,6 +1818,7 @@ Requirements:
         }
 
         coverImageUrl = url;
+        console.log("Cover image URL set to:", coverImageUrl);
 
         if (currentPageIndex === 0 && storyPages.length) {
           renderPage();
@@ -2065,4 +2069,5 @@ Rules:
   </script>
 </body>
 </html>
+
 
