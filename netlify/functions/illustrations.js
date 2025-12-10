@@ -1,36 +1,10 @@
 // netlify/functions/illustrations.js
 
-// Netlify function to generate a single cover image using OpenAI gpt-image-1
-// Returns: { url: "...", imageUrl: "..." }
+const NETLIFY_FUNCTION_TIMEOUT_MS = 10000; // Netlify hard limit is ~10–30s, stay safely under
+const OPENAI_TIMEOUT_MS = 9000;            // abort OpenAI call before Netlify kills us
 
-let openaiClientPromise;
-
-/**
- * Lazily load and cache the OpenAI client.
- * This pattern works fine in Netlify's CommonJS function environment.
- */
-async function getOpenAIClient() {
-  if (!openaiClientPromise) {
-    openaiClientPromise = (async () => {
-      const mod = await import("openai");
-      const OpenAI = mod.default;
-
-      const apiKey = process.env.OPENAI_API_KEY;
-      if (!apiKey) {
-        throw new Error("Missing OPENAI_API_KEY environment variable");
-      }
-
-      return new OpenAI({
-        apiKey,
-        timeout: 28000, // 28s client-side timeout
-      });
-    })();
-  }
-  return openaiClientPromise;
-}
-
-exports.handler = async (event) => {
-  // --- CORS preflight ---
+exports.handler = async (event, context) => {
+  // CORS preflight
   if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 200,
@@ -43,7 +17,6 @@ exports.handler = async (event) => {
     };
   }
 
-  // --- Method guard ---
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
@@ -52,7 +25,16 @@ exports.handler = async (event) => {
     };
   }
 
-  // --- Parse body ---
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    console.error("Missing OPENAI_API_KEY in environment");
+    return {
+      statusCode: 500,
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify({ error: "Server missing OpenAI API key" }),
+    };
+  }
+
   let body;
   try {
     body = JSON.parse(event.body || "{}");
@@ -73,22 +55,57 @@ exports.handler = async (event) => {
     };
   }
 
+  // ---- LOCAL TIMEOUT WRAPPER AROUND FETCH ----
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort();
+  }, OPENAI_TIMEOUT_MS);
+
   try {
-    const openai = await getOpenAIClient();
+    console.log("Illustration request prompt:", prompt);
 
-    console.log("Illustration prompt length:", prompt.length);
+    const response = await fetch(
+      "https://api.openai.com/v1/images/generations",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        // NOTE: signal is IMPORTANT – otherwise AbortController does nothing
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: "gpt-image-1",
+          prompt,
+          n: 1,
+          size: "1024x1024",
+          quality: "standard",
+          // style: "natural", // optional
+        }),
+      }
+    );
 
-    // Call OpenAI Images API via official client
-    const result = await openai.images.generate({
-      model: "gpt-image-1",
-      prompt,
-      n: 1,
-      size: "1024x1024", // valid sizes: 1024x1024, 1024x1536, 1536x1024, or "auto"
-    });
+    clearTimeout(timer);
 
-    const first = result.data && result.data[0];
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      console.error("OpenAI image error:", data);
+      return {
+        statusCode: 500,
+        headers: { "Access-Control-Allow-Origin": "*" },
+        body: JSON.stringify({
+          error:
+            data?.error?.message ||
+            data?.error ||
+            "OpenAI image API error",
+        }),
+      };
+    }
+
+    const first = data?.data?.[0];
     if (!first) {
-      console.error("No data[0] in images.generate result:", result);
+      console.error("No data[0] in OpenAI response:", data);
       return {
         statusCode: 500,
         headers: { "Access-Control-Allow-Origin": "*" },
@@ -96,14 +113,12 @@ exports.handler = async (event) => {
       };
     }
 
-    // Prefer URL; fall back to base64 if returned that way
     let url = first.url || null;
     if (!url && first.b64_json) {
       url = `data:image/png;base64,${first.b64_json}`;
     }
-
     if (!url) {
-      console.error("No url or b64_json in image result:", first);
+      console.error("No url or b64_json in OpenAI response:", data);
       return {
         statusCode: 500,
         headers: { "Access-Control-Allow-Origin": "*" },
@@ -111,31 +126,36 @@ exports.handler = async (event) => {
       };
     }
 
-    const payload = { url, imageUrl: url };
-
     return {
       statusCode: 200,
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ url, imageUrl: url }),
     };
   } catch (err) {
-    // Distinguish between timeout and other errors
+    clearTimeout(timer);
+
+    if (err.name === "AbortError") {
+      console.error(
+        `OpenAI image request aborted after ${OPENAI_TIMEOUT_MS} ms (local timeout).`
+      );
+      return {
+        statusCode: 504,
+        headers: { "Access-Control-Allow-Origin": "*" },
+        body: JSON.stringify({
+          error:
+            "Image generation took too long and was cancelled. Please try again.",
+        }),
+      };
+    }
+
     console.error("Illustrations function caught error:", err);
-
-    const isTimeout =
-      err && (err.type === "request_timeout" || /timeout/i.test(err.message || ""));
-
     return {
-      statusCode: isTimeout ? 504 : 500,
+      statusCode: 500,
       headers: { "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({
-        error: isTimeout
-          ? "Image generation took too long. Please try again in a moment."
-          : err.message || "Unexpected error",
-      }),
+      body: JSON.stringify({ error: err.message || "Unexpected error" }),
     };
   }
 };
