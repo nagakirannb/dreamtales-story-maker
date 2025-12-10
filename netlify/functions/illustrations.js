@@ -72,7 +72,7 @@ exports.handler = async (event) => {
           prompt,
           n: 1,
           // If you still see timeouts, change this to "512x512"
-          size: "512x512",
+          size: "auto",
         }),
       }
     );
