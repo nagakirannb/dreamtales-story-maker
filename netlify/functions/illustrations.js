@@ -55,31 +55,55 @@ exports.handler = async (event) => {
     };
   }
 
-  try {
-    console.log("Illustration prompt:", prompt);
+// Call OpenAI images API using plain fetch, with our own timeout
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s safety
 
-    // Keep this call as light as possible so it finishes under Netlify’s 10s limit
-    const response = await fetch(
-      "https://api.openai.com/v1/images/generations",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-image-1",
-          prompt,
-          n: 1,
-          // If you still see timeouts, change this to "512x512"
-          size: "auto",
-        }),
-      }
-    );
+let response;
+try {
+  response = await fetch("https://api.openai.com/v1/images/generations", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-image-1",
+      prompt,
+      n: 1,
+      size: "1024x1024",       // ✅ valid size
+      // quality: "standard",   // (optional, default)
+    }),
+    signal: controller.signal,
+  });
+} catch (err) {
+  clearTimeout(timeoutId);
 
-    const data = await response.json().catch(() => ({}));
+  // If *we* aborted the request, return a friendly error instead of letting Netlify 504
+  if (err.name === "AbortError") {
+    console.error("OpenAI image request timed out before Netlify limit.");
+    return {
+      statusCode: 504,
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify({
+        error:
+          "Image generation took too long. Please try again or generate a shorter prompt.",
+      }),
+    };
+  }
 
-    if (!response.ok) {
+  console.error("Network error calling OpenAI images:", err);
+  return {
+    statusCode: 500,
+    headers: { "Access-Control-Allow-Origin": "*" },
+    body: JSON.stringify({ error: "Network error calling OpenAI images API" }),
+  };
+}
+
+clearTimeout(timeoutId);
+const data = await response.json().catch(() => ({}));
+  
+     if (!response.ok) {
       console.error("OpenAI image error:", data);
       return {
         statusCode: 500,
