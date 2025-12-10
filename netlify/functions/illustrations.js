@@ -63,7 +63,7 @@ exports.handler = async (event, context) => {
   try {
     // --- Call OpenAI images API with our own timeout ---
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s safety
+    const timeoutId = setTimeout(() => controller.abort(), 9500); // 8s,9.5s safety
 
     let response;
     try {
