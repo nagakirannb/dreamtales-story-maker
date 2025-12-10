@@ -17,6 +17,7 @@ exports.handler = async (event, context) => {
     };
   }
 
+  
   // --- Method check ---
   if (event.httpMethod !== "POST") {
     return {
