@@ -1,5 +1,4 @@
 // netlify/functions/illustrations.js
-
 // Netlify function to generate a single cover image using OpenAI gpt-image-1
 // Returns: { url: "...", imageUrl: "..." }
 
