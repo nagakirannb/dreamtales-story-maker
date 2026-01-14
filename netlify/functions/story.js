@@ -6,6 +6,12 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 function utcDayString() {
   const now = new Date();
   const y = now.getUTCFullYear();
@@ -25,7 +31,6 @@ async function getOrCreateProfile(userId) {
 
   if (existing?.plan) return existing.plan;
 
-  // Create profile (default free)
   const { error: insErr } = await supabase
     .from("profiles")
     .insert({ user_id: userId, plan: "free" });
@@ -34,193 +39,187 @@ async function getOrCreateProfile(userId) {
   return "free";
 }
 
+async function getCurrentUsageCount(userId, dayUtc) {
+  const { data: usageRow, error: usageErr } = await supabase
+    .from("daily_usage")
+    .select("story_count")
+    .eq("user_id", userId)
+    .eq("day_utc", dayUtc)
+    .maybeSingle();
+
+  if (usageErr) throw usageErr;
+  return usageRow?.story_count || 0;
+}
+
 async function incrementUsageAtomic(userId, dayUtc) {
-  // Atomic upsert: story_count = story_count + 1
-  // Using Postgres "upsert then update" pattern via RPC-like SQL is best,
-  // but Supabase JS doesn't expose raw "ON CONFLICT DO UPDATE story_count=story_count+1" cleanly without SQL.
-  // We can do it with a single SQL RPC. We'll create one small function in Supabase.
+  // You said you already created this RPC
   const { data, error } = await supabase.rpc("increment_daily_usage", {
     p_user_id: userId,
-    p_day_utc: dayUtc
+    p_day_utc: dayUtc,
   });
 
   if (error) throw error;
-  return data; // returns new_count
+  return Number(data || 0); // new_count
+}
+
+function isSuccessfulStoryPayload(openAiPayload) {
+  // "Successful story" = has a content string we can render
+  const content =
+    openAiPayload?.choices?.[0]?.message?.content ||
+    openAiPayload?.choices?.[0]?.text ||
+    "";
+
+  return typeof content === "string" && content.trim().length >= 50;
 }
 
 exports.handler = async (event, context) => {
-  // CORS / preflight
+  // Preflight
   if (event.httpMethod === "OPTIONS") {
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        "Access-Control-Allow-Methods": "POST, OPTIONS"
-      },
-      body: "ok"
-    };
+    return { statusCode: 200, headers: CORS_HEADERS, body: "ok" };
   }
 
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
-      headers: { "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ error: "Method not allowed" })
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      body: JSON.stringify({ error: "Method not allowed" }),
     };
   }
-
-  // ✅ Mandatory login enforcement
-  const user = context.clientContext && context.clientContext.user;
-  if (!user || !user.sub) {
-    return {
-      statusCode: 401,
-      headers: { "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ error: "Please sign in to generate stories." })
-    };
-  }
-
-  const userId = user.sub; // Netlify Identity user UUID
-  const dayUtc = utcDayString();
 
   try {
-    const plan = await getOrCreateProfile(userId);
+    // ✅ Mandatory login enforcement (Netlify Identity)
+    const user = context.clientContext && context.clientContext.user;
+    if (!user || !user.sub) {
+      return {
+        statusCode: 401,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        body: JSON.stringify({ error: "Please sign in to generate stories." }),
+      };
+    }
 
-    // ✅ limits (free=2/day, paid=10/day)
+    const userId = user.sub;
+    const dayUtc = utcDayString();
+
+    // ✅ Ensure profile exists + get plan
+    const plan = await getOrCreateProfile(userId);
     const dailyLimit = plan === "paid" ? 10 : 2;
 
-    // IMPORTANT: We only want to count successful stories.
-    // So we do story generation first, THEN increment usage.
-    // But we still need to block early if user already at limit.
-    // We'll read current usage first.
-
-    const { data: usageRow, error: usageErr } = await supabase
-      .from("daily_usage")
-      .select("story_count")
-      .eq("user_id", userId)
-      .eq("day_utc", dayUtc)
-      .maybeSingle();
-
-    if (usageErr) throw usageErr;
-
-    const currentCount = usageRow?.story_count || 0;
+    // ✅ Block early if already at limit
+    const currentCount = await getCurrentUsageCount(userId, dayUtc);
     if (currentCount >= dailyLimit) {
       return {
         statusCode: 429,
-        headers: { "Access-Control-Allow-Origin": "*" },
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
         body: JSON.stringify({
           error: `Daily limit reached (${dailyLimit}/day). Please upgrade to generate more stories.`,
           code: "DAILY_LIMIT_REACHED",
           plan,
-          dailyLimit
-        })
+          dailyLimit,
+          usedToday: currentCount,
+          dayUtc,
+        }),
       };
     }
 
-    // -----------------------------
-    // ✅ YOUR EXISTING STORY GENERATION LOGIC GOES HERE
-    // It should return the normal { choices: [...] } payload you currently send back.
-    // -----------------------------
-
-    // Example placeholder:
-    // const storyResponse = await yourOpenAiCall(...);
-    // const storyPayload = storyResponse;
-
- exports.handler = async function (event, context) {
-  try {
-    // 1. Check if key exists
+    // ✅ OpenAI key check
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       console.error("OPENAI_API_KEY is NOT set in Netlify environment");
       return {
         statusCode: 500,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
         body: JSON.stringify({
-          error: "Missing OPENAI_API_KEY on server. Set it in Netlify Environment Variables."
-        })
+          error:
+            "Missing OPENAI_API_KEY on server. Set it in Netlify Environment Variables.",
+        }),
       };
     }
 
-    // 2. Parse request body
-    const body = JSON.parse(event.body || "{}");
-    const messages = body.messages || [];
+    // ✅ Parse request body (expects { messages: [...] })
+    let body = {};
+    try {
+      body = JSON.parse(event.body || "{}");
+    } catch {
+      return {
+        statusCode: 400,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        body: JSON.stringify({ error: "Invalid JSON body." }),
+      };
+    }
 
+    const messages = body.messages || [];
     if (!Array.isArray(messages) || messages.length === 0) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: "No messages provided to story function." })
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        body: JSON.stringify({ error: "No messages provided to story function." }),
       };
     }
 
-    // 3. Call OpenAI
+    // ✅ Call OpenAI (single request)
+    // NOTE: Netlify Node runtime should have global fetch.
+    // If your site is on older runtime, we can switch to node-fetch.
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         model: "gpt-4.1-mini",
         messages,
-        temperature: 0.9
-      })
+        temperature: 0.9,
+      }),
     });
 
-    const data = await response.json();
+    const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
       console.error("OpenAI API error:", data);
       return {
         statusCode: response.status,
-        body: JSON.stringify({ error: data.error || "OpenAI API error" })
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          error: data?.error?.message || data?.error || "OpenAI API error",
+        }),
       };
     }
 
-    // 4. Return OpenAI response back to browser
-    return {
-      statusCode: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    };
-  } 
-  
-  catch (err) {
-    console.error("Function error:", err);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: err.message })
-    };
-  }
-};
-// 🔴 Replace this with your real response:
-    const storyPayload = { ok: true, message: "REPLACE_WITH_REAL_STORY_RESPONSE" };
+    // ✅ Only count SUCCESSFUL story generations
+    if (!isSuccessfulStoryPayload(data)) {
+      console.error("OpenAI payload missing story content:", data);
+      return {
+        statusCode: 502,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          error: "Story generation returned an unexpected response. Not counted.",
+        }),
+      };
+    }
 
-    // If story generation succeeded, NOW increment usage atomically
+    // ✅ Increment usage ONLY AFTER success
     const newCount = await incrementUsageAtomic(userId, dayUtc);
 
+    // ✅ Return OpenAI response + usage info
     return {
       statusCode: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*"
-      },
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
       body: JSON.stringify({
-        ...storyPayload,
+        ...data,
         usage: {
           dayUtc,
           plan,
           dailyLimit,
-          usedToday: newCount
-        }
-      })
+          usedToday: newCount,
+        },
+      }),
     };
   } catch (err) {
     console.error("Story function error:", err);
     return {
       statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ error: err.message || "Server error" })
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      body: JSON.stringify({ error: err.message || "Server error" }),
     };
   }
 };
-
-
