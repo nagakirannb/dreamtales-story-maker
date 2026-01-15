@@ -26,11 +26,7 @@
       --shadow-card: 0 18px 60px rgba(15, 23, 42, 0.65);
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
@@ -42,27 +38,10 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    a {
-      color: inherit;
-      text-decoration: none;
-    }
+    a { color: inherit; text-decoration: none; }
 
-    /* Layout shell */
-
-    .page {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .max-w {
-      width: 100%;
-      max-width: 1120px;
-      margin: 0 auto;
-      padding: 0 20px;
-    }
-
-    /* Nav */
+    .page { min-height: 100vh; display: flex; flex-direction: column; }
+    .max-w { width: 100%; max-width: 1120px; margin: 0 auto; padding: 0 20px; }
 
     .nav {
       position: sticky;
@@ -85,13 +64,10 @@
       padding: 14px 20px 10px;
       max-width: 1120px;
       margin: 0 auto;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
       gap: 10px;
     }
+
+    .brand { display: flex; align-items: center; gap: 10px; }
 
     .brand-icon {
       width: 32px;
@@ -108,16 +84,8 @@
       font-size: 18px;
     }
 
-    .brand-text-main {
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      font-size: 16px;
-    }
-
-    .brand-text-sub {
-      font-size: 11px;
-      color: var(--text-muted);
-    }
+    .brand-text-main { font-weight: 700; letter-spacing: 0.02em; font-size: 16px; }
+    .brand-text-sub { font-size: 11px; color: var(--text-muted); }
 
     .nav-links {
       display: flex;
@@ -127,21 +95,10 @@
       color: var(--text-muted);
     }
 
-    .nav-links a {
-      padding-bottom: 2px;
-      border-bottom: 1px solid transparent;
-    }
+    .nav-links a { padding-bottom: 2px; border-bottom: 1px solid transparent; }
+    .nav-links a:hover { border-bottom-color: rgba(148, 163, 184, 0.7); color: #e5e7eb; }
 
-    .nav-links a:hover {
-      border-bottom-color: rgba(148, 163, 184, 0.7);
-      color: #e5e7eb;
-    }
-
-    .nav-cta {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+    .nav-cta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 
     .btn {
       border-radius: 999px;
@@ -155,6 +112,7 @@
       gap: 6px;
       transition: transform 0.08s ease, box-shadow 0.12s ease,
         background 0.12s ease, border-color 0.12s ease;
+      white-space: nowrap;
     }
 
     .btn-primary {
@@ -178,23 +136,11 @@
       color: var(--text-muted);
     }
 
-    .btn-ghost:hover {
-      background: rgba(15, 23, 42, 0.9);
-      color: #e5e7eb;
-    }
+    .btn-ghost:hover { background: rgba(15, 23, 42, 0.9); color: #e5e7eb; }
 
-    @media (max-width: 720px) {
-      .nav-links {
-        display: none;
-      }
-    }
+    @media (max-width: 720px) { .nav-links { display: none; } }
 
-    /* Hero */
-
-    .hero {
-      padding-top: 36px;
-      padding-bottom: 40px;
-    }
+    .hero { padding-top: 36px; padding-bottom: 40px; }
 
     .hero-inner {
       display: grid;
@@ -203,11 +149,7 @@
       align-items: center;
     }
 
-    @media (max-width: 880px) {
-      .hero-inner {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
+    @media (max-width: 880px) { .hero-inner { grid-template-columns: minmax(0, 1fr); } }
 
     .hero-pill {
       display: inline-flex;
@@ -259,12 +201,7 @@
       margin-bottom: 18px;
     }
 
-    .hero-bullets {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 18px;
-    }
+    .hero-bullets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
 
     .hero-badge {
       font-size: 11px;
@@ -278,23 +215,10 @@
       color: #e5e7eb;
     }
 
-    .hero-ctas {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 14px;
-    }
+    .hero-ctas { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
 
-    .hero-note {
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-
-    .hero-note strong {
-      color: #e5e7eb;
-    }
-
-    /* Hero preview card */
+    .hero-note { font-size: 11px; color: var(--text-muted); }
+    .hero-note strong { color: #e5e7eb; }
 
     .hero-preview {
       background:
@@ -308,70 +232,26 @@
       overflow: hidden;
     }
 
-    .hero-preview-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-bottom: 10px;
-    }
+    .hero-preview-header { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
 
-    .hero-preview-tag {
-      padding: 3px 8px;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.45);
-    }
+    .hero-preview-tag { padding: 3px 8px; border-radius: 999px; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(148, 163, 184, 0.45); }
 
-    .hero-preview-main {
-      display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.0fr);
-      gap: 10px;
-    }
-
-    @media (max-width: 880px) {
-      .hero-preview-main {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
+    .hero-preview-main { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.0fr); gap: 10px; }
+    @media (max-width: 880px) { .hero-preview-main { grid-template-columns: minmax(0, 1fr); } }
 
     .hero-preview-book {
-      background: radial-gradient(
-          circle at top left,
-          rgba(248, 250, 252, 0.12) 0,
-          transparent 60%
-        ),
-        rgba(15, 23, 42, 0.96);
+      background: radial-gradient(circle at top left, rgba(248, 250, 252, 0.12) 0, transparent 60%), rgba(15, 23, 42, 0.96);
       border-radius: 18px;
       padding: 10px 12px 12px;
       border: 1px solid rgba(148, 163, 184, 0.45);
-      box-shadow:
-        0 18px 55px rgba(15, 23, 42, 0.9),
-        0 0 0 1px rgba(15, 23, 42, 0.8);
+      box-shadow: 0 18px 55px rgba(15, 23, 42, 0.9), 0 0 0 1px rgba(15, 23, 42, 0.8);
     }
 
-    .hero-preview-book-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-bottom: 6px;
-    }
+    .hero-preview-book-header { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted); margin-bottom: 6px; }
 
-    .hero-preview-book-pill {
-      padding: 2px 7px;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.45);
-    }
+    .hero-preview-book-pill { padding: 2px 7px; border-radius: 999px; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(148, 163, 184, 0.45); }
 
-    .hero-preview-book-title {
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
+    .hero-preview-book-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
 
     .hero-preview-book-body {
       font-size: 11.5px;
@@ -382,31 +262,11 @@
       mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
     }
 
-    .hero-preview-controls {
-      margin-top: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 10.5px;
-      color: var(--text-muted);
-    }
+    .hero-preview-controls { margin-top: 8px; display: flex; align-items: center; justify-content: space-between; font-size: 10.5px; color: var(--text-muted); }
 
-    .pill-soft {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 3px 8px;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.45);
-    }
+    .pill-soft { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 999px; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(148, 163, 184, 0.45); }
 
-    .pill-soft span.dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 999px;
-      background: #22c55e;
-    }
+    .pill-soft span.dot { width: 6px; height: 6px; border-radius: 999px; background: #22c55e; }
 
     .hero-preview-list {
       background: rgba(15, 23, 42, 0.96);
@@ -419,40 +279,15 @@
       font-size: 11.5px;
     }
 
-    .hero-preview-list h4 {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--text-muted);
-    }
+    .hero-preview-list h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
 
-    .hero-preview-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-    }
+    .hero-preview-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .hero-preview-row span.label { color: var(--text-muted); }
+    .hero-preview-row span.value { color: #e5e7eb; font-weight: 500; }
 
-    .hero-preview-row span.label {
-      color: var(--text-muted);
-    }
+    .hero-preview-timeline { display: flex; flex-direction: column; gap: 4px; }
 
-    .hero-preview-row span.value {
-      color: #e5e7eb;
-      font-weight: 500;
-    }
-
-    .hero-preview-timeline {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .hero-preview-step {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+    .hero-preview-step { display: flex; align-items: center; gap: 8px; }
 
     .hero-preview-step-dot {
       width: 9px;
@@ -467,19 +302,13 @@
       color: var(--accent);
     }
 
-    /* Trust band */
-
-    .trust {
-      padding: 8px 0 20px;
-    }
+    .trust { padding: 8px 0 20px; }
 
     .trust-inner {
       border-radius: 999px;
       border: 1px solid rgba(55, 65, 81, 0.8);
       background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), #020617);
-      box-shadow:
-        0 12px 30px rgba(15, 23, 42, 0.85),
-        0 0 0 1px rgba(15, 23, 42, 0.8);
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.85), 0 0 0 1px rgba(15, 23, 42, 0.8);
       padding: 6px 14px;
       display: flex;
       flex-wrap: wrap;
@@ -489,22 +318,10 @@
       font-size: 11.5px;
     }
 
-    .trust-main {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
+    .trust-main { display: flex; align-items: center; gap: 6px; }
+    .trust-main span.highlight { color: var(--accent-strong); font-weight: 600; }
 
-    .trust-main span.highlight {
-      color: var(--accent-strong);
-      font-weight: 600;
-    }
-
-    .trust-badges {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
+    .trust-badges { display: flex; flex-wrap: wrap; gap: 6px; }
 
     .trust-pill {
       padding: 3px 8px;
@@ -516,63 +333,23 @@
     }
 
     @media (max-width: 720px) {
-      .trust-inner {
-        border-radius: 16px;
-        align-items: flex-start;
-      }
+      .trust-inner { border-radius: 16px; align-items: flex-start; }
     }
 
-    /* Sections */
+    section { padding: 36px 0; }
 
-    section {
-      padding: 36px 0;
-    }
+    .section-header { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; max-width: 620px; }
 
-    .section-header {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-bottom: 20px;
-      max-width: 620px;
-    }
+    .section-kicker { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent-strong); }
 
-    .section-kicker {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--accent-strong);
-    }
+    .section-title { font-size: 20px; font-weight: 650; }
 
-    .section-title {
-      font-size: 20px;
-      font-weight: 650;
-    }
+    .section-sub { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
 
-    .section-sub {
-      font-size: 13px;
-      color: var(--text-muted);
-      line-height: 1.6;
-    }
+    .features-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 
-    /* Feature grid */
-
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 16px;
-    }
-
-    @media (max-width: 960px) {
-      .features-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-
-    @media (max-width: 640px) {
-      .features-grid {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
+    @media (max-width: 960px) { .features-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 640px) { .features-grid { grid-template-columns: minmax(0, 1fr); } }
 
     .feature-card {
       background: var(--bg-card-soft);
@@ -594,31 +371,12 @@
       margin-bottom: 8px;
     }
 
-    .feature-title {
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
+    .feature-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
 
-    .feature-body {
-      font-size: 12px;
-      color: var(--text-muted);
-      line-height: 1.6;
-    }
+    .feature-body { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
 
-    /* How it works */
-
-    .steps {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 16px;
-    }
-
-    @media (max-width: 880px) {
-      .steps {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
+    .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    @media (max-width: 880px) { .steps { grid-template-columns: minmax(0, 1fr); } }
 
     .step-card {
       background: var(--bg-card-soft);
@@ -641,31 +399,12 @@
       background: rgba(15, 23, 42, 0.9);
     }
 
-    .step-title {
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
+    .step-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
 
-    .step-body {
-      font-size: 12px;
-      color: var(--text-muted);
-      line-height: 1.6;
-    }
+    .step-body { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
 
-    /* Parents section */
-
-    .parents {
-      display: grid;
-      grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
-      gap: 18px;
-    }
-
-    @media (max-width: 880px) {
-      .parents {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
+    .parents { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; }
+    @media (max-width: 880px) { .parents { grid-template-columns: minmax(0, 1fr); } }
 
     .parents-card {
       background: var(--bg-card-soft);
@@ -675,43 +414,14 @@
       box-shadow: var(--shadow-card);
     }
 
-    .quote {
-      font-size: 13px;
-      line-height: 1.7;
-      color: #e5e7eb;
-      margin-bottom: 8px;
-    }
+    .quote { font-size: 13px; line-height: 1.7; color: #e5e7eb; margin-bottom: 8px; }
+    .quote-meta { font-size: 11px; color: var(--text-muted); }
 
-    .quote-meta {
-      font-size: 11px;
-      color: var(--text-muted);
-    }
+    .bullet-list { font-size: 12px; color: var(--text-muted); line-height: 1.7; padding-left: 16px; margin-top: 6px; }
+    .bullet-list li + li { margin-top: 3px; }
 
-    .bullet-list {
-      font-size: 12px;
-      color: var(--text-muted);
-      line-height: 1.7;
-      padding-left: 16px;
-      margin-top: 6px;
-    }
-
-    .bullet-list li + li {
-      margin-top: 3px;
-    }
-
-    /* Roadmap */
-
-    .roadmap-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-      gap: 18px;
-    }
-
-    @media (max-width: 880px) {
-      .roadmap-grid {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
+    .roadmap-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 18px; }
+    @media (max-width: 880px) { .roadmap-grid { grid-template-columns: minmax(0, 1fr); } }
 
     .roadmap-card {
       background: var(--bg-card-soft);
@@ -724,13 +434,7 @@
       line-height: 1.7;
     }
 
-    .roadmap-pills {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 6px;
-      margin-bottom: 6px;
-    }
+    .roadmap-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; margin-bottom: 6px; }
 
     .roadmap-pill {
       padding: 3px 8px;
@@ -740,45 +444,13 @@
       font-size: 11px;
     }
 
-    .roadmap-timeline {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 8px;
-    }
+    .roadmap-timeline { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+    .roadmap-item { display: flex; gap: 6px; }
+    .roadmap-dot { margin-top: 4px; width: 8px; height: 8px; border-radius: 999px; background: var(--accent-strong); box-shadow: 0 0 12px rgba(250, 204, 21, 0.8); }
+    .roadmap-text { font-size: 12px; color: var(--text-muted); }
 
-    .roadmap-item {
-      display: flex;
-      gap: 6px;
-    }
-
-    .roadmap-dot {
-      margin-top: 4px;
-      width: 8px;
-      height: 8px;
-      border-radius: 999px;
-      background: var(--accent-strong);
-      box-shadow: 0 0 12px rgba(250, 204, 21, 0.8);
-    }
-
-    .roadmap-text {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    /* FAQ */
-
-    .faq-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-    }
-
-    @media (max-width: 880px) {
-      .faq-grid {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
+    .faq-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    @media (max-width: 880px) { .faq-grid { grid-template-columns: minmax(0, 1fr); } }
 
     .faq-item {
       background: var(--bg-card-soft);
@@ -790,17 +462,9 @@
       line-height: 1.6;
     }
 
-    .faq-item h4 {
-      font-size: 12.5px;
-      color: #e5e7eb;
-      margin-bottom: 4px;
-    }
+    .faq-item h4 { font-size: 12.5px; color: #e5e7eb; margin-bottom: 4px; }
 
-    /* CTA Footer */
-
-    .cta-footer {
-      padding: 28px 0 34px;
-    }
+    .cta-footer { padding: 28px 0 34px; }
 
     .cta-card {
       border-radius: 22px;
@@ -813,27 +477,10 @@
       text-align: center;
     }
 
-    .cta-card h2 {
-      font-size: 18px;
-      margin-bottom: 6px;
-    }
-
-    .cta-card p {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-bottom: 14px;
-    }
-
-    .cta-card .btn-primary {
-      font-size: 13px;
-      padding-inline: 22px;
-    }
-
-    .cta-note {
-      margin-top: 8px;
-      font-size: 11px;
-      color: var(--text-muted);
-    }
+    .cta-card h2 { font-size: 18px; margin-bottom: 6px; }
+    .cta-card p { font-size: 13px; color: var(--text-muted); margin-bottom: 14px; }
+    .cta-card .btn-primary { font-size: 13px; padding-inline: 22px; }
+    .cta-note { margin-top: 8px; font-size: 11px; color: var(--text-muted); }
 
     .footer-bottom {
       padding: 12px 0 18px;
@@ -843,16 +490,12 @@
       border-top: 1px solid rgba(15, 23, 42, 0.85);
     }
 
-    .footer-bottom a {
-      color: var(--accent-strong);
-    }
+    .footer-bottom a { color: var(--accent-strong); }
 
-    /* Smooth scrolling for anchor links */
-    html {
-      scroll-behavior: smooth;
-    }
+    html { scroll-behavior: smooth; }
   </style>
 </head>
+
 <body>
 <div class="page">
   <!-- NAV -->
@@ -865,6 +508,7 @@
           <div class="brand-text-sub">Gentle AI bedtime stories</div>
         </div>
       </div>
+
       <nav class="nav-links" aria-label="Primary">
         <a href="#features">Features</a>
         <a href="#how-it-works">How it works</a>
@@ -872,8 +516,13 @@
         <a href="#roadmap">What’s next</a>
         <a href="#faq">FAQ</a>
       </nav>
+
       <div class="nav-cta">
+        <!-- Auth button (helps recovery flow land somewhere visible) -->
+        <button id="authBtn" class="btn btn-ghost" type="button">Sign in</button>
+
         <a href="#roadmap" class="btn btn-ghost">Give feedback</a>
+
         <!-- TODO: update href if your app is at a different path -->
         <a href="app/index.html" class="btn btn-primary">
           Try DreamTales
@@ -914,15 +563,14 @@
               Start a story now
               <span>→</span>
             </a>
-            <!-- Replace #feedback-link with your Google Form link if you want -->
             <a href="#roadmap" class="btn btn-ghost">
               Join feedback circle
             </a>
           </div>
 
           <p class="hero-note">
-            <strong>No login required</strong> for a quick try. Use headphones or a
-            smart speaker for the best bedtime experience.
+            <strong>Login required</strong> to generate stories (so we can enforce daily limits and prevent misuse).
+            Audio and PDFs are available inside the app.
           </p>
         </div>
 
@@ -1117,7 +765,7 @@
       </div>
     </section>
 
-    <!-- PARENTS / USE CASES -->
+    <!-- PARENTS -->
     <section id="parents">
       <div class="max-w parents">
         <div>
@@ -1154,7 +802,7 @@
       </div>
     </section>
 
-    <!-- ROADMAP / FEEDBACK -->
+    <!-- ROADMAP -->
     <section id="roadmap">
       <div class="max-w roadmap-grid">
         <div>
@@ -1236,8 +884,8 @@
           <div class="faq-item">
             <h4>Is DreamTales free right now?</h4>
             <p>
-              Yes. This is an early access prototype. You can generate stories, listen
-              to audio and download PDFs without entering payment details.
+              Yes — early access is free while we test. You’ll need to sign in so we can
+              enforce daily limits and prevent misuse. Paid plans will come later.
             </p>
           </div>
           <div class="faq-item">
@@ -1289,37 +937,66 @@
   </main>
 
   <footer class="footer-bottom">
-    DreamTales · Early access prototype · Built with love for sleepy kids and tired
-    parents.
+    DreamTales · Early access prototype · Built with love for sleepy kids and tired parents.
   </footer>
 </div>
-</body>
-  
-  
-  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+
+<!-- Netlify Identity -->
+<script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
 
 <script>
   (function () {
-    function openRecoveryIfNeeded() {
-      const hash = window.location.hash || "";
-      const isRecovery = hash.includes("recovery_token=");
+    const authBtn = document.getElementById("authBtn");
 
-      if (isRecovery) {
-        console.log("[Identity] Recovery link detected:", hash);
-        netlifyIdentity.open("recovery");
-      }
+    function hasRecoveryToken() {
+      const hash = window.location.hash || "";
+      return hash.includes("recovery_token=");
     }
 
-    // Wait until the widget is actually loaded
+    function updateAuthButton(user) {
+      if (!authBtn) return;
+      authBtn.textContent = user ? "Log out" : "Sign in";
+    }
+
+    function wireAuthButton() {
+      if (!authBtn) return;
+      authBtn.addEventListener("click", function () {
+        if (typeof netlifyIdentity === "undefined") return;
+        const user = netlifyIdentity.currentUser();
+        if (user) netlifyIdentity.logout();
+        else netlifyIdentity.open("login");
+      });
+    }
+
+    function openRecoveryIfNeeded() {
+      if (!hasRecoveryToken()) return;
+      console.log("[Identity] Recovery token detected. Opening recovery modal…");
+      netlifyIdentity.open("recovery");
+    }
+
     function waitForIdentity() {
       if (typeof netlifyIdentity === "undefined") {
-        console.log("[Identity] widget not loaded yet, retrying...");
+        console.log("[Identity] widget not loaded yet, retrying…");
         return setTimeout(waitForIdentity, 50);
       }
 
-      netlifyIdentity.on("init", function () {
-        console.log("[Identity] init event fired");
+      wireAuthButton();
+
+      netlifyIdentity.on("init", function (user) {
+        console.log("[Identity] init");
+        updateAuthButton(user);
         openRecoveryIfNeeded();
+      });
+
+      netlifyIdentity.on("login", function (user) {
+        console.log("[Identity] login", user && user.email);
+        updateAuthButton(user);
+        netlifyIdentity.close();
+      });
+
+      netlifyIdentity.on("logout", function () {
+        console.log("[Identity] logout");
+        updateAuthButton(null);
       });
 
       netlifyIdentity.init();
@@ -1330,5 +1007,5 @@
   })();
 </script>
 
-
+</body>
 </html>
