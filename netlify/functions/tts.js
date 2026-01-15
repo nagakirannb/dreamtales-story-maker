@@ -1,12 +1,24 @@
 // netlify/functions/tts.js
-// Serverless function to call OpenAI TTS and return MP3 audio
+// Serverless function to call OpenAI TTS and return MP3 audio (binary)
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 exports.handler = async (event) => {
+  // CORS preflight
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 200, headers: CORS_HEADERS, body: "ok" };
+  }
+
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
       body: JSON.stringify({ error: "Method not allowed" }),
     };
   }
@@ -14,6 +26,7 @@ exports.handler = async (event) => {
   if (!OPENAI_API_KEY) {
     return {
       statusCode: 500,
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
       body: JSON.stringify({ error: "Missing OPENAI_API_KEY environment variable" }),
     };
   }
@@ -24,23 +37,19 @@ exports.handler = async (event) => {
   } catch (e) {
     return {
       statusCode: 400,
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
       body: JSON.stringify({ error: "Invalid JSON body" }),
     };
   }
 
   const text = (payload.text || "").trim();
-
-  // Front-end sends `language`, older version used `languageCode`
-  const language = payload.language || payload.languageCode || "en-US";
-
+  const language = payload.language || payload.languageCode || "en-US"; // optional hint
   const voice = (payload.voice || "alloy").trim() || "alloy";
-
-  // Front-end sends `voice` (e.g. "alloy"), but default if missing
-  //const voice = payload.voice || "alloy";
 
   if (!text) {
     return {
       statusCode: 400,
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
       body: JSON.stringify({ error: "Missing 'text' field for TTS" }),
     };
   }
@@ -57,7 +66,7 @@ exports.handler = async (event) => {
         input: text,
         voice,
         format: "mp3",
-        // language: language, // optional hint; voice usually determines accent
+        // language, // optional hint (not always required)
       }),
     });
 
@@ -66,6 +75,7 @@ exports.handler = async (event) => {
       console.error("OpenAI TTS error:", errText);
       return {
         statusCode: 500,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
         body: JSON.stringify({
           error: "OpenAI TTS request failed",
           details: errText.slice(0, 400),
@@ -76,12 +86,13 @@ exports.handler = async (event) => {
     const arrayBuffer = await response.arrayBuffer();
     const base64Audio = Buffer.from(arrayBuffer).toString("base64");
 
-    // 🔴 IMPORTANT CHANGE:
-    // Return raw audio (base64) with audio/mpeg + isBase64Encoded
+    // Return binary mp3 to browser via base64 body + isBase64Encoded
     return {
       statusCode: 200,
       headers: {
+        ...CORS_HEADERS,
         "Content-Type": "audio/mpeg",
+        "Cache-Control": "no-store",
       },
       body: base64Audio,
       isBase64Encoded: true,
@@ -90,6 +101,7 @@ exports.handler = async (event) => {
     console.error("TTS function exception:", err);
     return {
       statusCode: 500,
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
       body: JSON.stringify({
         error: "TTS function exception",
         details: String(err),
