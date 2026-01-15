@@ -1032,6 +1032,13 @@
       return netlifyIdentity.currentUser();
     }
 
+    async function getIdentityTokenOrThrow() {
+  const user = getCurrentIdentityUser();
+  if (!user) throw new Error("Please sign in to generate stories.");
+  return await user.jwt();
+}
+
+
     function getStorageKeyForUser() {
       let userId = "guest";
       const user = getCurrentIdentityUser();
@@ -1904,23 +1911,48 @@ Rules:
 8. After the moral, add a new section titled 'Illustration Prompts:' and list 4 bullet-point prompts describing key scenes for an illustrator or image model.
 `.trim();
 
-      try {
-        const response = await fetch("/.netlify/functions/story", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages: [
-              {
-                role: "system",
-                content:
-                  "You are a gentle, creative kids’ bedtime story writer. You write safe, soothing, age-appropriate stories for children. Your stories always have a clear positive moral. You avoid anything scary or disturbing."
-              },
-              { role: "user", content: userContent }
-            ]
-          })
-        });
+     let token;
+          try {
+            token = await getIdentityTokenOrThrow();
+          } catch (e) {
+            statusEl.textContent = e.message;
+            if (typeof netlifyIdentity !== "undefined") netlifyIdentity.open("login");
+            btn.disabled = false;
+            return;
+          }
+          
+          const response = await fetch("/.netlify/functions/story", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              messages: [
+                {
+                  role: "system",
+                  content:
+                    "You are a gentle, creative kids’ bedtime story writer. You write safe, soothing, age-appropriate stories for children. Your stories always have a clear positive moral. You avoid anything scary or disturbing."
+                },
+                { role: "user", content: userContent }
+              ]
+            })
+          });
+
 
         const data = await response.json();
+        
+      if (response.status === 401) {
+          statusEl.textContent = "Please sign in to generate stories.";
+          if (typeof netlifyIdentity !== "undefined") netlifyIdentity.open("login");
+          throw new Error("Not signed in");
+        }
+        
+        if (response.status === 429) {
+          statusEl.textContent = data.error || "Daily limit reached.";
+          throw new Error(data.error || "Daily limit reached");
+        }
+
 
         if (!response.ok) {
           console.error("Story API error:", data);
@@ -2069,6 +2101,7 @@ Rules:
   </script>
 </body>  
 </html>
+
 
 
 
