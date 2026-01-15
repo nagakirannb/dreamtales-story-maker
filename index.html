@@ -1296,24 +1296,39 @@
 </body>
   
   
-  <script>
-  // Netlify Identity: handle password recovery links
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+
+<script>
   (function () {
-    if (typeof netlifyIdentity === "undefined") return;
+    function openRecoveryIfNeeded() {
+      const hash = window.location.hash || "";
+      const isRecovery = hash.includes("recovery_token=");
 
-    netlifyIdentity.init();
-
-    // When the user lands from a recovery email, Netlify Identity includes a token in the URL hash
-    // Example: #recovery_token=... or #token=...&type=recovery
-    const hash = window.location.hash || "";
-    const isRecoveryLink =
-      hash.includes("recovery_token=") || hash.includes("type=recovery") || hash.includes("token=");
-
-    if (isRecoveryLink) {
-      // Open the recovery UI directly
-      netlifyIdentity.open("recovery");
+      if (isRecovery) {
+        console.log("[Identity] Recovery link detected:", hash);
+        netlifyIdentity.open("recovery");
+      }
     }
+
+    // Wait until the widget is actually loaded
+    function waitForIdentity() {
+      if (typeof netlifyIdentity === "undefined") {
+        console.log("[Identity] widget not loaded yet, retrying...");
+        return setTimeout(waitForIdentity, 50);
+      }
+
+      netlifyIdentity.on("init", function () {
+        console.log("[Identity] init event fired");
+        openRecoveryIfNeeded();
+      });
+
+      netlifyIdentity.init();
+      console.log("[Identity] init() called");
+    }
+
+    waitForIdentity();
   })();
 </script>
+
 
 </html>
