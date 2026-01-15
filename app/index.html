@@ -2067,32 +2067,9 @@ Rules:
       });
     }
   </script>
-</body>
-
-  
-  <script>
-  // Netlify Identity: handle password recovery links
-  (function () {
-    if (typeof netlifyIdentity === "undefined") return;
-
-    netlifyIdentity.init();
-
-    // When the user lands from a recovery email, Netlify Identity includes a token in the URL hash
-    // Example: #recovery_token=... or #token=...&type=recovery
-    const hash = window.location.hash || "";
-    const isRecoveryLink =
-      hash.includes("recovery_token=") || hash.includes("type=recovery") || hash.includes("token=");
-
-    if (isRecoveryLink) {
-      // Open the recovery UI directly
-      netlifyIdentity.open("recovery");
-    }
-  })();
-</script>
-
-
-  
+</body>  
 </html>
+
 
 
 
