@@ -1,4 +1,5 @@
 // netlify/functions/story.js
+console.log("clientContext:", JSON.stringify(context.clientContext));
 const { createClient } = require("@supabase/supabase-js");
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -208,3 +209,4 @@ exports.handler = async (event, context) => {
     };
   }
 };
+
