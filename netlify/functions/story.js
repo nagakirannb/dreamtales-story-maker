@@ -201,12 +201,19 @@ exports.handler = async (event, context) => {
       }),
     };
   } catch (err) {
-    console.error("Story function error:", err);
-    return {
-      statusCode: 500,
-      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-      body: JSON.stringify({ error: err.message || "Server error" }),
-    };
-  }
+  console.error("Story function fatal error:", err);
+  console.error("Stack:", err?.stack);
+
+  return {
+    statusCode: 500,
+    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      error: "Server crashed in story function",
+      details: err?.message || String(err),
+    }),
+  };
+}
+
 };
+
 
