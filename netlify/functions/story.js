@@ -70,7 +70,7 @@ exports.handler = async (event, context) => {
     };
   }
 
-  // ✅ Mandatory login enforcement
+  /*/ ✅ Mandatory login enforcement
   const user = context.clientContext && context.clientContext.user;
   if (!user || !user.sub) {
     return {
@@ -78,7 +78,7 @@ exports.handler = async (event, context) => {
       headers: { "Access-Control-Allow-Origin": "*" },
       body: JSON.stringify({ error: "Please sign in to generate stories." })
     };
-  }
+  }*/
 
   const userId = user.sub; // Netlify Identity user UUID
   const dayUtc = utcDayString();
@@ -86,8 +86,8 @@ exports.handler = async (event, context) => {
   try {
     const plan = await getOrCreateProfile(userId);
 
-    // ✅ limits (free=2/day, paid=10/day)
-    const dailyLimit = plan === "paid" ? 10 : 2;
+    /*/ ✅ limits (free=2/day, paid=10/day)
+    const dailyLimit = plan === "paid" ? 10 : 2;*/
 
     // IMPORTANT: We only want to count successful stories.
     // So we do story generation first, THEN increment usage.
@@ -222,4 +222,5 @@ exports.handler = async (event, context) => {
     };
   }
 };
+
 
