@@ -257,6 +257,7 @@
       margin-bottom: 8px;
     }
 
+    /* Row 1: New story (1/3) + title (2/3) */
     .storybook-header-top {
       display: grid;
       grid-template-columns: 1fr 2fr;
@@ -274,7 +275,7 @@
       padding: 8px 12px;
       cursor: pointer;
       text-align: center;
-      display: none;
+      display: none; /* becomes visible in story-mode */
       margin-top: 0;
     }
 
@@ -296,6 +297,7 @@
       text-overflow: ellipsis;
     }
 
+    /* Row 2: three equal controls */
     .storybook-header-controls {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -352,6 +354,7 @@
       margin-top: 0;
     }
 
+    /* Row 3: theme pill */
     .storybook-pill {
       font-size: 11px;
       padding: 4px 10px;
@@ -648,6 +651,7 @@
       background: rgba(127, 29, 29, 1);
     }
 
+    /* Story mode (after generation) */
     .story-mode .layout {
       grid-template-columns: minmax(0, 1fr);
     }
@@ -689,6 +693,7 @@
       </div>
 
       <div class="layout">
+        <!-- LEFT: form -->
         <div class="card">
           <h1>Create a magical bedtime story</h1>
           <div class="subtitle">
@@ -726,7 +731,7 @@
             <option value="French">French</option>
             <option value="German">German</option>
           </select>
-
+          
           <label>Narrator voice</label>
           <select id="voice">
             <option value="soft" selected>Soothing voice</option>
@@ -741,19 +746,31 @@
           </select>
 
           <button id="generateBtn">✨ Generate Story</button>
+
           <div id="status" class="status"></div>
         </div>
 
+        <!-- RIGHT: story viewer -->
         <div class="storybook">
           <div class="storybook-header">
             <div class="storybook-header-top">
-              <button id="homeBtn" class="header-home-btn" type="button">← New story</button>
-              <div class="storybook-title" id="storybookTitle">Your storybook will appear here</div>
+              <button id="homeBtn" class="header-home-btn" type="button">
+                ← New story
+              </button>
+              <div class="storybook-title" id="storybookTitle">
+                Your storybook will appear here
+              </div>
             </div>
 
             <div class="storybook-header-controls">
-              <button id="listenStoryBtn" class="audio-btn audio-btn-primary" disabled>🔊 Listen</button>
-              <button id="musicToggleBtn" class="audio-btn audio-btn-secondary" disabled>🎵 Music off</button>
+              <button id="listenStoryBtn" class="audio-btn audio-btn-primary" disabled>
+                🔊 Listen
+              </button>
+
+              <button id="musicToggleBtn" class="audio-btn audio-btn-secondary" disabled>
+                🎵 Music off
+              </button>
+
               <select id="musicPreset" class="music-select-compact" disabled>
                 <option value="dreamtales" selected>DreamTales – Night lullaby</option>
                 <option value="twinkle">Twinkle</option>
@@ -763,7 +780,9 @@
               </select>
             </div>
 
-            <div class="storybook-pill" id="storybookPill">Ready for bedtime</div>
+            <div class="storybook-pill" id="storybookPill">
+              Ready for bedtime
+            </div>
           </div>
 
           <div class="storybook-body">
@@ -782,8 +801,13 @@
           </div>
 
           <div class="storybook-footer">
-            <span class="badge">Tip: Swipe left or right on the story page (on touch devices) to flip pages.</span>
-            <span class="music-hint" id="musicHint">🎵 Use the music controls above to set the mood.</span>
+            <span class="badge">
+              Tip: Swipe left or right on the story page (on touch devices) to flip pages.
+            </span>
+
+            <span class="music-hint" id="musicHint">
+              🎵 Use the music controls above to set the mood.
+            </span>
 
             <div class="pager-row">
               <button id="prevPage" class="pager-btn" disabled>‹ Prev</button>
@@ -794,7 +818,9 @@
             <div class="actions-row">
               <button id="downloadPdfBtn" class="primary-btn" disabled>Download PDF</button>
               <button id="saveStoryBtn" class="secondary-btn" disabled>Save story</button>
-              <button id="feedbackBtn" class="ghost-btn" type="button">💬 Give feedback</button>
+              <button id="feedbackBtn" class="ghost-btn" type="button">
+                💬 Give feedback
+              </button>
             </div>
           </div>
         </div>
@@ -819,6 +845,7 @@
     </div>
   </div>
 
+  <!-- Background music and TTS audio -->
   <audio id="bgMusic" loop preload="auto"></audio>
   <audio id="storyAudio" preload="auto"></audio>
 
@@ -832,16 +859,20 @@
     let currentIllustrationPrompts = [];
     let coverImageUrl = null;
 
+    // swipe tracking
     let touchStartX = 0;
     let touchStartY = 0;
     let touchStartTime = 0;
 
+    // TTS audio state
     let storyAudioUrl = null;
     let isTtsPlaying = false;
     let isTtsLoading = false;
 
+    // background music state
     let musicEnabled = false;
 
+    // metadata
     let lastChildName = "";
     let lastAge = "";
     let lastTheme = "";
@@ -850,6 +881,7 @@
     let lastLanguage = "English";
     let sentencesPerPage = 4;
 
+    // saved stories
     let savedStories = [];
 
     const appShell = document.querySelector(".app-shell");
@@ -893,6 +925,8 @@
       none: null
     };
     let currentMusicPreset = "dreamtales";
+
+    // ----- Background music helpers -----
 
     function ensureMusicSource() {
       if (!bgMusicEl) return;
@@ -958,6 +992,7 @@
       bgMusicEl.volume = BG_MUSIC_BASE_VOLUME;
     }
 
+    // Top “Music on/off” pill
     if (musicToggleBtn) {
       musicToggleBtn.addEventListener("click", () => {
         if (!storyPages.length) return;
@@ -973,6 +1008,7 @@
       });
     }
 
+    // Dropdown for choosing track
     if (musicPresetSelect) {
       musicPresetSelect.addEventListener("change", () => {
         currentMusicPreset = musicPresetSelect.value || "none";
@@ -994,12 +1030,6 @@
     function getCurrentIdentityUser() {
       if (typeof netlifyIdentity === "undefined") return null;
       return netlifyIdentity.currentUser();
-    }
-
-    async function getIdentityTokenOrThrow() {
-      const user = getCurrentIdentityUser();
-      if (!user) throw new Error("Please sign in to generate stories.");
-      return await user.jwt();
     }
 
     function getStorageKeyForUser() {
@@ -1051,7 +1081,9 @@
 
     async function callCloudStories(method, payload) {
       const user = getCurrentIdentityUser();
-      if (!user) throw new Error("Not signed in");
+      if (!user) {
+        throw new Error("Not signed in");
+      }
       const token = await user.jwt();
 
       const res = await fetch("/.netlify/functions/cloud-stories", {
@@ -1064,11 +1096,16 @@
       });
 
       let data;
-      try { data = await res.json(); } catch { data = {}; }
+      try {
+        data = await res.json();
+      } catch (e) {
+        data = {};
+      }
 
       if (!res.ok) {
         throw new Error(data.error || "Cloud stories error");
       }
+
       return data;
     }
 
@@ -1082,6 +1119,7 @@
       try {
         const data = await callCloudStories("GET");
         const stories = (data.stories || []).map(mapCloudStoryToLocal).filter(Boolean);
+
         savedStories = stories;
         saveStoriesToStorage();
         renderSavedStories();
@@ -1238,6 +1276,8 @@
       statusEl.textContent = "Story deleted.";
     }
 
+    // ---------- navigation & swipe ----------
+
     prevPageBtn.addEventListener("click", () => {
       if (currentPageIndex > 0) {
         currentPageIndex--;
@@ -1296,15 +1336,29 @@
       storybookBodyEl.addEventListener("touchend", handleTouchEnd, { passive: true });
     }
 
+    // ---------- Story type config ----------
+
     function storyConfigForType(type) {
       switch (type) {
         case "short":
-          return { label: "Short Story (1 chapter)", sentenceRange: "4–6 sentences", perPage: 6 };
+          return {
+            label: "Short Story (1 chapter)",
+            sentenceRange: "4–6 sentences",
+            perPage: 6
+          };
         case "epic":
-          return { label: "Epic Bedtime Tale (6 chapters)", sentenceRange: "18–24 sentences", perPage: 4 };
+          return {
+            label: "Epic Bedtime Tale (6 chapters)",
+            sentenceRange: "18–24 sentences",
+            perPage: 4
+          };
         case "adventure":
         default:
-          return { label: "Magical Adventure (3 chapters)", sentenceRange: "10–16 sentences", perPage: 4 };
+          return {
+            label: "Magical Adventure (3 chapters)",
+            sentenceRange: "10–16 sentences",
+            perPage: 4
+          };
       }
     }
 
@@ -1318,21 +1372,33 @@
       return pages;
     }
 
+    // ---------- PDF helpers ----------
+
     function buildStoryPieces() {
       if (!storyPages.length) return null;
 
       const headerLines = [];
       if (lastChildName) {
-        headerLines.push(`Child: ${lastChildName}${lastAge ? " (age " + lastAge + ")" : ""}`);
+        headerLines.push(
+          `Child: ${lastChildName}${lastAge ? " (age " + lastAge + ")" : ""}`
+        );
       }
       if (lastTheme || lastStyle) {
         headerLines.push(`Theme: ${lastTheme || ""} | Style: ${lastStyle || ""}`);
       }
-      if (lastStoryType) headerLines.push(`Story Type: ${lastStoryType}`);
-      if (lastLanguage) headerLines.push(`Language: ${lastLanguage}`);
+      if (lastStoryType) {
+        headerLines.push(`Story Type: ${lastStoryType}`);
+      }
+      if (lastLanguage) {
+        headerLines.push(`Language: ${lastLanguage}`);
+      }
 
-      const paragraphs = storyPages.map(page => page.join(" ").trim()).filter(Boolean);
+      const paragraphs = storyPages
+        .map(page => page.join(" ").trim())
+        .filter(Boolean);
+
       const moralLine = currentMoralLine ? `Moral: ${currentMoralLine}` : "";
+
       return { headerLines, paragraphs, moralLine };
     }
 
@@ -1348,7 +1414,11 @@
         return;
       }
 
-      const doc = new jsPDF({ orientation: "p", unit: "pt", format: "a4" });
+      const doc = new jsPDF({
+        orientation: "p",
+        unit: "pt",
+        format: "a4"
+      });
 
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
@@ -1380,7 +1450,12 @@
       function drawFooter() {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
-        doc.text(`Page ${pageNumber}`, pageWidth / 2, pageHeight - marginBottom / 2, { align: "center" });
+        doc.text(
+          `Page ${pageNumber}`,
+          pageWidth / 2,
+          pageHeight - marginBottom / 2,
+          { align: "center" }
+        );
       }
 
       drawHeader();
@@ -1422,7 +1497,11 @@
       statusEl.textContent = "Story downloaded as PDF ✔";
     }
 
-    if (downloadPdfBtn) downloadPdfBtn.addEventListener("click", downloadStoryPdf);
+    if (downloadPdfBtn) {
+      downloadPdfBtn.addEventListener("click", downloadStoryPdf);
+    }
+
+    // ---------- TTS helpers ----------
 
     function getLanguageCode(language) {
       switch (language) {
@@ -1450,8 +1529,14 @@
 
     function resetStoryAudio() {
       if (!storyAudioEl) return;
-      try { storyAudioEl.pause(); storyAudioEl.currentTime = 0; } catch {}
-      if (storyAudioUrl) { URL.revokeObjectURL(storyAudioUrl); storyAudioUrl = null; }
+      try {
+        storyAudioEl.pause();
+        storyAudioEl.currentTime = 0;
+      } catch {}
+      if (storyAudioUrl) {
+        URL.revokeObjectURL(storyAudioUrl);
+        storyAudioUrl = null;
+      }
       storyAudioEl.removeAttribute("src");
       isTtsPlaying = false;
       isTtsLoading = false;
@@ -1484,11 +1569,15 @@
 
       const langCode = getLanguageCode(lastLanguage || "English");
       const voiceId = getSelectedVoiceId();
-
+      
       const res = await fetch("/.netlify/functions/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, languageCode: langCode, voice: voiceId })
+        body: JSON.stringify({
+          text,
+          languageCode: langCode,
+          voice: voiceId
+        })
       });
 
       if (!res.ok) {
@@ -1502,10 +1591,31 @@
         throw new Error(msg);
       }
 
-      const audioBuffer = await res.arrayBuffer();
-      const blob = new Blob([audioBuffer], { type: "audio/mpeg" });
+      const contentType = (res.headers.get("content-type") || "").toLowerCase();
+      let blob;
 
-      if (storyAudioUrl) URL.revokeObjectURL(storyAudioUrl);
+      if (contentType.includes("application/json")) {
+        const data = await res.json();
+        console.log("Illustration API result:", data);
+        if (!data.audio) {
+          throw new Error("No 'audio' field in TTS JSON response");
+        }
+
+        const byteChars = atob(data.audio);
+        const byteNumbers = new Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) {
+          byteNumbers[i] = byteChars.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        blob = new Blob([byteArray], { type: "audio/mpeg" });
+      } else {
+        const audioBuffer = await res.arrayBuffer();
+        blob = new Blob([audioBuffer], { type: "audio/mpeg" });
+      }
+
+      if (storyAudioUrl) {
+        URL.revokeObjectURL(storyAudioUrl);
+      }
       storyAudioUrl = URL.createObjectURL(blob);
       storyAudioEl.src = storyAudioUrl;
     }
@@ -1557,8 +1667,14 @@
       }
     }
 
-    if (listenStoryBtnHeader) listenStoryBtnHeader.addEventListener("click", handleListenClick);
-    if (listenStoryBtnFooter) listenStoryBtnFooter.addEventListener("click", handleListenClick);
+    if (listenStoryBtnHeader) {
+      listenStoryBtnHeader.addEventListener("click", handleListenClick);
+    }
+    if (listenStoryBtnFooter) {
+      listenStoryBtnFooter.addEventListener("click", handleListenClick);
+    }
+
+    // ---------- save story (local + cloud) ----------
 
     async function saveCurrentStory() {
       if (!storyPages.length) return;
@@ -1587,7 +1703,9 @@
       statusEl.textContent = "Story saved locally ✔";
 
       const user = getCurrentIdentityUser();
-      if (!user) return;
+      if (!user) {
+        return;
+      }
 
       const cloudPayload = {
         title: localTitle,
@@ -1605,7 +1723,11 @@
         const data = await callCloudStories("POST", cloudPayload);
         if (data.story) {
           const cloudStory = mapCloudStoryToLocal(data.story);
-          savedStories = [cloudStory, ...savedStories.filter(s => s.id !== localId)];
+
+          savedStories = [
+            cloudStory,
+            ...savedStories.filter(s => s.id !== localId)
+          ];
           saveStoriesToStorage();
           renderSavedStories();
           statusEl.textContent = "Story saved in the cloud ☁️ and locally ✔";
@@ -1616,7 +1738,13 @@
       }
     }
 
-    if (saveStoryBtn) saveStoryBtn.addEventListener("click", saveCurrentStory);
+    if (saveStoryBtn) {
+      saveStoryBtn.addEventListener("click", () => {
+        saveCurrentStory();
+      });
+    }
+
+    // ---------- story mode helpers ----------
 
     function enterStoryMode() {
       if (!appShell) return;
@@ -1634,7 +1762,13 @@
       statusEl.textContent = "Ready for a new bedtime story.";
     }
 
-    if (homeBtn) homeBtn.addEventListener("click", exitStoryMode);
+    if (homeBtn) {
+      homeBtn.addEventListener("click", () => {
+        exitStoryMode();
+      });
+    }
+
+    // ---------- cover illustration ----------
 
     async function generateCoverIllustration(childName, age, theme, illustrationPrompts) {
       try {
@@ -1670,25 +1804,31 @@ Requirements:
 
         if (!res.ok) {
           console.error("Illustration API error:", data);
-          statusEl.textContent = (statusEl.textContent || "") + " (Illustration unavailable right now.)";
+          statusEl.textContent =
+            (statusEl.textContent || "") + " (Illustration unavailable right now.)";
           return;
         }
 
         const url = data.imageUrl || data.url;
         if (!url) {
           console.error("No image URL in illustration response:", data);
-          statusEl.textContent = (statusEl.textContent || "") + " (Illustration unavailable right now.)";
+          statusEl.textContent =
+            (statusEl.textContent || "") + " (Illustration unavailable right now.)";
           return;
         }
 
         coverImageUrl = url;
         console.log("Cover image URL set to:", coverImageUrl);
 
-        if (currentPageIndex === 0 && storyPages.length) renderPage();
+        if (currentPageIndex === 0 && storyPages.length) {
+          renderPage();
+        }
+
         statusEl.textContent = (statusEl.textContent || "") + " Artwork added 🎨";
       } catch (err) {
         console.error("Cover illustration error:", err);
-        statusEl.textContent = (statusEl.textContent || "") + " (Illustration unavailable right now.)";
+        statusEl.textContent =
+          (statusEl.textContent || "") + " (Illustration unavailable right now.)";
       }
     }
 
@@ -1765,21 +1905,9 @@ Rules:
 `.trim();
 
       try {
-        let token;
-        try {
-          token = await getIdentityTokenOrThrow();
-        } catch (e) {
-          statusEl.textContent = e.message;
-          if (typeof netlifyIdentity !== "undefined") netlifyIdentity.open("login");
-          return;
-        }
-
         const response = await fetch("/.netlify/functions/story", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             messages: [
               {
@@ -1792,18 +1920,7 @@ Rules:
           })
         });
 
-        const data = await response.json().catch(() => ({}));
-
-        if (response.status === 401) {
-          statusEl.textContent = "Please sign in to generate stories.";
-          if (typeof netlifyIdentity !== "undefined") netlifyIdentity.open("login");
-          throw new Error("Not signed in");
-        }
-
-        if (response.status === 429) {
-          statusEl.textContent = data.error || "Daily limit reached.";
-          throw new Error(data.error || "Daily limit reached");
-        }
+        const data = await response.json();
 
         if (!response.ok) {
           console.error("Story API error:", data);
@@ -1817,7 +1934,9 @@ Rules:
         let illustrationPrompts = [];
 
         const moralMatch = storyRaw.match(/Moral:\s*(.*)/i);
-        if (moralMatch) moralLine = moralMatch[1].trim();
+        if (moralMatch) {
+          moralLine = moralMatch[1].trim();
+        }
 
         const illuSplit = mainText.split(/Illustration Prompts:/i);
         if (illuSplit.length > 1) {
@@ -1843,24 +1962,18 @@ Rules:
           .filter(s => s.length > 0);
 
         storyPages = chunkSentencesIntoPages(sentences);
+
         currentMoralLine = moralLine;
         currentIllustrationPrompts = illustrationPrompts;
         currentPageIndex = 0;
         renderPage();
 
+        // generate cover art now that we have prompts
         generateCoverIllustration(childName, age, theme, currentIllustrationPrompts);
 
         titleEl.textContent = "Bedtime story for " + childName;
-
-        // ✅ Optional (D): show usage if backend returns it
-        if (data.usage) {
-          const { usedToday, dailyLimit } = data.usage;
-          statusEl.textContent =
-            `Story ready ✨ (${usedToday}/${dailyLimit} stories used today). Enjoy reading, listening, or PDF.`;
-        } else {
-          statusEl.textContent =
-            "Story ready ✨ Enjoy reading, listening to the audio, or downloading the PDF.";
-        }
+        statusEl.textContent =
+          "Story ready ✨ Enjoy reading, listening to the audio, or downloading the PDF.";
 
         saveStoryBtn.disabled = false;
         if (downloadPdfBtn) downloadPdfBtn.disabled = false;
@@ -1871,8 +1984,10 @@ Rules:
 
         enterStoryMode();
 
+        // music starts off; user turns it on with the button
         musicEnabled = false;
         if (musicToggleBtn) musicToggleBtn.textContent = "🎵 Music off";
+
       } catch (err) {
         console.error(err);
         statusEl.textContent = "Something went wrong: " + err.message;
@@ -1942,7 +2057,10 @@ Rules:
       navigator.serviceWorker.register("service-worker.js").catch(console.error);
     }
 
+    // ---------- Feedback button ----------
+
     const FEEDBACK_FORM_URL = "https://docs.google.com/forms/d/1Fq94O9JP0LOSDo3YjScjwVvvtcc1Ji76TIc1giiOvb0/viewform";
+
     if (feedbackBtn) {
       feedbackBtn.addEventListener("click", () => {
         window.open(FEEDBACK_FORM_URL, "_blank", "noopener");
@@ -1951,3 +2069,4 @@ Rules:
   </script>
 </body>
 </html>
+
