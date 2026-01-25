@@ -49,6 +49,21 @@ async function incrementUsageAtomic(userId, dayUtc) {
 }
 
 exports.handler = async (event, context) => {
+  
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  return {
+    statusCode: 500,
+    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      error: "Missing Supabase env vars",
+      missing: {
+        SUPABASE_URL: !process.env.SUPABASE_URL,
+        SUPABASE_SERVICE_ROLE_KEY: !process.env.SUPABASE_SERVICE_ROLE_KEY
+      }
+    })
+  };
+}
+    
   // CORS / preflight
   if (event.httpMethod === "OPTIONS") {
     return {
@@ -214,13 +229,20 @@ exports.handler = async (event, context) => {
       })
     };
   } catch (err) {
-    console.error("Story function error:", err);
-    return {
-      statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ error: err.message || "Server error" })
-    };
-  }
+  console.error("Story function fatal error:", err);
+  console.error("Stack:", err?.stack);
+
+  return {
+    statusCode: 500,
+    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      error: "Server crashed in story function",
+      details: err?.message || String(err),
+    }),
+  };
+}
+
 };
+
 
 
