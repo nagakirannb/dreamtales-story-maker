@@ -1079,35 +1079,36 @@
       };
     }
 
-    async function callCloudStories(method, payload) {
-      const user = getCurrentIdentityUser();
-      if (!user) {
-        throw new Error("Not signed in");
-      }
-      const token = await user.jwt();
+   async function callCloudStories(method, payload) {
+  const user = getCurrentIdentityUser();
+  if (!user) throw new Error("Not signed in");
 
-      const res = await fetch("/.netlify/functions/cloud-stories", {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: payload ? JSON.stringify(payload) : undefined
-      });
+  const token = await user.jwt();
 
-      let data;
-      try {
-        data = await res.json();
-      } catch (e) {
-        data = {};
-      }
+  const res = await fetch("/.netlify/functions/cloud-stories", {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: payload ? JSON.stringify(payload) : undefined
+  });
 
-      if (!res.ok) {
-        throw new Error(data.error || "Cloud stories error");
-      }
+  let data = {};
+  try {
+    data = await res.json();
+  } catch {}
 
-      return data;
-    }
+  if (!res.ok) {
+    const msg = data.details
+      ? `${data.error || "Cloud stories error"}: ${data.details}`
+      : (data.error || "Cloud stories error");
+    throw new Error(msg);
+  }
+
+  return data;
+}
+
 
     async function loadCloudStoriesForUser() {
       const user = getCurrentIdentityUser();
@@ -2069,6 +2070,7 @@ Rules:
   </script>
 </body>
 </html>
+
 
 
 
