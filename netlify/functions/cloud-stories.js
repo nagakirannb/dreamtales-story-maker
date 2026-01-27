@@ -1,20 +1,33 @@
 // netlify/functions/cloud-stories.js
-// Uses Supabase JS client (recommended) instead of REST calls
+// Cloud save/load for stories using Supabase.
+// Requires Netlify Identity JWT (Authorization: Bearer <token>) so that
+// context.clientContext.user is populated.
 
 const { createClient } = require("@supabase/supabase-js");
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
 };
 
-function json(statusCode, payload) {
+function json(statusCode, bodyObj, extraHeaders = {}) {
   return {
     statusCode,
-    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    headers: { ...CORS_HEADERS, "Content-Type": "application/json", ...extraHeaders },
+    body: JSON.stringify(bodyObj),
   };
+}
+
+function getSupabaseAdminKey() {
+  // Support common env var names
+  return (
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE ||
+    process.env.SUPABASE_SERVICE_ROLE_SECRET ||
+    ""
+  );
 }
 
 exports.handler = async (event, context) => {
@@ -23,43 +36,29 @@ exports.handler = async (event, context) => {
     return { statusCode: 200, headers: CORS_HEADERS, body: "ok" };
   }
 
-  // Auth (Netlify Identity)
-  const user = context.clientContext && context.clientContext.user;
-  if (!user || !(user.sub || user.email)) {
-    return json(401, { error: "Not authenticated" });
-  }
-
-  const SUPABASE_URL = process.env.SUPABASE_URL;
-
-  // Prefer service role key (most common name)
-  const SERVICE_ROLE_KEY =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_SERVICE_ROLE ||
-    process.env.SUPABASE_SERVICE_KEY || // if you used this name earlier
-    process.env.SUPABASE_SERVICE_ROLE_KEY; // fallback (same)
-
-  const TABLE = process.env.SUPABASE_TABLE || "stories";
-
-  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
-    return json(500, {
-      error: "Supabase env vars not configured",
-      details:
-        "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY).",
-    });
-  }
-
-  // Use Netlify Identity stable id
-  const userId = user.sub || user.email;
-
-  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
-
   try {
-    // -------- GET: list stories ----------
+    const user = context?.clientContext?.user;
+    if (!user || !(user.sub || user.email)) {
+      return json(401, { error: "Not authenticated" });
+    }
+
+    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SUPABASE_ADMIN_KEY = getSupabaseAdminKey();
+    const TABLE = process.env.SUPABASE_TABLE || "stories";
+
+    if (!SUPABASE_URL || !SUPABASE_ADMIN_KEY) {
+      return json(500, {
+        error:
+          "Supabase env vars not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY).",
+      });
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ADMIN_KEY, {
+      auth: { persistSession: false },
+    });
+
+    const userId = user.sub || user.email;
+
     if (event.httpMethod === "GET") {
       const { data, error } = await supabase
         .from(TABLE)
@@ -68,21 +67,20 @@ exports.handler = async (event, context) => {
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("Supabase GET error:", error);
+        console.error("cloud-stories GET error:", error);
         return json(500, {
-          error: "Supabase select error",
-          details: error.message || error,
+          error: "Supabase fetch failed",
+          details: error.message || String(error),
         });
       }
 
       return json(200, { stories: data || [] });
     }
 
-    // -------- POST: insert story ----------
     if (event.httpMethod === "POST") {
-      let body = {};
+      let body;
       try {
-        body = JSON.parse(event.body || "{}");
+        body = JSON.parse(event.body || "{}") || {};
       } catch {
         return json(400, { error: "Invalid JSON body" });
       }
@@ -99,7 +97,7 @@ exports.handler = async (event, context) => {
         coverImageUrl,
       } = body;
 
-      if (!pages || !Array.isArray(pages) || pages.length === 0) {
+      if (!Array.isArray(pages) || pages.length === 0) {
         return json(400, { error: "Missing story pages" });
       }
 
@@ -112,7 +110,7 @@ exports.handler = async (event, context) => {
         style: style || null,
         length: length || null,
         moral: moral || null,
-        pages, // jsonb column
+        pages,
         cover_image_url: coverImageUrl || null,
       };
 
@@ -123,19 +121,44 @@ exports.handler = async (event, context) => {
         .single();
 
       if (error) {
-        console.error("Supabase INSERT error:", error);
+        console.error("cloud-stories POST error:", error);
         return json(500, {
-          error: "Supabase insert error",
-          details: error.message || error,
+          error: "Supabase insert failed",
+          details: error.message || String(error),
         });
       }
 
       return json(200, { story: data });
     }
 
+    if (event.httpMethod === "DELETE") {
+      // Optional delete support: /cloud-stories?id=<uuid>
+      const id = event.queryStringParameters?.id;
+      if (!id) return json(400, { error: "Missing id" });
+
+      const { error } = await supabase
+        .from(TABLE)
+        .delete()
+        .eq("id", id)
+        .eq("user_id", userId);
+
+      if (error) {
+        console.error("cloud-stories DELETE error:", error);
+        return json(500, {
+          error: "Supabase delete failed",
+          details: error.message || String(error),
+        });
+      }
+
+      return json(200, { ok: true });
+    }
+
     return json(405, { error: "Method not allowed" });
   } catch (err) {
-    console.error("cloud-stories handler exception:", err);
-    return json(500, { error: "Server error", details: String(err) });
+    console.error("cloud-stories fatal error:", err);
+    return json(500, {
+      error: "Cloud stories error",
+      details: err?.message ? err.message : String(err),
+    });
   }
 };
