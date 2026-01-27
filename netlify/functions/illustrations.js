@@ -1,7 +1,8 @@
 // netlify/functions/illustrations.js
 
-const NETLIFY_FUNCTION_TIMEOUT_MS = 10000; // Netlify hard limit is ~10–30s, stay safely under
-const OPENAI_TIMEOUT_MS = 9000;            // abort OpenAI call before Netlify kills us
+// Give the image model a bit more breathing room. Netlify Functions often allow
+// ~10s (older free) up to ~26s+ (newer plans), so we keep a conservative cap.
+const OPENAI_TIMEOUT_MS = 20000;
 
 exports.handler = async (event, context) => {
   // CORS preflight
@@ -78,7 +79,8 @@ exports.handler = async (event, context) => {
           model: "gpt-image-1",
           prompt,
           n: 1,
-          size: "1024x1024",
+          // Smaller is faster + cheaper; still looks good as a cover thumb.
+          size: "512x512",
           quality: "auto",
           // style: "natural", // optional
         }),
