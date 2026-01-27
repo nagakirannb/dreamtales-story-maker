@@ -1,68 +1,85 @@
-const CACHE_NAME = "dreamtales-cache-v3";
+/* app/service-worker.js */
 
-// Only cache truly static assets (NO HTML)
-// NOTE: use relative paths because the app is hosted under /app/
+const CACHE_NAME = "dreamtales-cache-v7";
+
+// Cache only STATIC assets (never cache /.netlify/functions/*)
 const URLS_TO_CACHE = [
-  "./manifest.webmanifest",
-  "./favicon.ico",
-  "./icon-192.png",
-  "./icon-512.png",
+  "/app/",
+  "/app/index.html",
+  "/app/manifest.webmanifest",
+
+  // Music (static)
+  "/Music/dreamtales-night.mp3",
+  "/Music/TwinkleTLS-lullaby-baby-sleep-music.mp3",
+  "/Music/soft-piano-music-432727.mp3",
+  "/Music/krishna_flute.mp3",
+
+  // Icons (only if these files actually exist at these paths)
+  // If you don’t have them, either add the files or remove these lines.
+  "/app/icon-192.png",
+  "/app/icon-512.png",
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    (async () => {
-      const cache = await caches.open(CACHE_NAME);
+    caches
+      .open(CACHE_NAME)
+      .then(async (cache) => {
+        // Optional (D): don’t fail install if any asset 404s
+        const results = await Promise.allSettled(
+          URLS_TO_CACHE.map((url) => cache.add(url))
+        );
 
-      // "Optional D": Don't let a single missing file break service-worker install.
-      // addAll() fails the whole install if any request fails.
-      const results = await Promise.allSettled(
-        URLS_TO_CACHE.map(async (url) => {
-          try {
-            await cache.add(url);
-          } catch (e) {
-            // Keep install successful; we'll just skip this asset.
-            console.warn("SW cache skip:", url, String(e));
-          }
-        })
-      );
-
-      // Prevent unused var lint in some bundlers
-      void results;
-    })()
+        const failed = results.filter((r) => r.status === "rejected");
+        if (failed.length) {
+          console.warn("SW precache: some assets failed (safe to ignore).", failed);
+        }
+      })
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.map((key) => (key !== CACHE_NAME ? caches.delete(key) : null)))
-    )
+    caches
+      .keys()
+      .then((names) =>
+        Promise.all(names.map((n) => (n !== CACHE_NAME ? caches.delete(n) : null)))
+      )
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   const url = new URL(req.url);
 
-  // ✅ Always go network-first for HTML navigations (index pages, routes, etc.)
-  if (req.mode === "navigate" || (req.headers.get("accept") || "").includes("text/html")) {
-    event.respondWith(
-      fetch(req).catch(() => caches.match(req))
-    );
-    return;
-  }
-
-  // ✅ Never cache Netlify Identity widget / auth endpoints
-  if (url.hostname.includes("netlify") && url.pathname.includes("identity")) {
+  // ✅ CRITICAL: never cache/proxy serverless functions
+  if (url.pathname.startsWith("/.netlify/functions/")) {
     event.respondWith(fetch(req));
     return;
   }
 
-  // ✅ Cache-first for everything else
+  // Only GET requests should be cached
+  if (req.method !== "GET") {
+    event.respondWith(fetch(req));
+    return;
+  }
+
   event.respondWith(
-    caches.match(req).then((cached) => cached || fetch(req))
+    caches.match(req).then((cached) => {
+      if (cached) return cached;
+
+      return fetch(req)
+        .then((res) => {
+          // Cache successful same-origin responses
+          if (res && res.ok && url.origin === location.origin) {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+          }
+          return res;
+        })
+        .catch(() => cached);
+    })
   );
 });
