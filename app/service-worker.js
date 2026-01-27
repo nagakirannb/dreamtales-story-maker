@@ -1,15 +1,35 @@
-const CACHE_NAME = "dreamtales-cache-v2";
+const CACHE_NAME = "dreamtales-cache-v3";
 
 // Only cache truly static assets (NO HTML)
+// NOTE: use relative paths because the app is hosted under /app/
 const URLS_TO_CACHE = [
   "./manifest.webmanifest",
-  "./favicon.ico"
-  // add music/mp3/css/js only if they are versioned or rarely change
+  "./favicon.ico",
+  "./icon-192.png",
+  "./icon-512.png",
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(URLS_TO_CACHE))
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+
+      // "Optional D": Don't let a single missing file break service-worker install.
+      // addAll() fails the whole install if any request fails.
+      const results = await Promise.allSettled(
+        URLS_TO_CACHE.map(async (url) => {
+          try {
+            await cache.add(url);
+          } catch (e) {
+            // Keep install successful; we'll just skip this asset.
+            console.warn("SW cache skip:", url, String(e));
+          }
+        })
+      );
+
+      // Prevent unused var lint in some bundlers
+      void results;
+    })()
   );
   self.skipWaiting();
 });
