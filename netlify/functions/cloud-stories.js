@@ -1,22 +1,14 @@
 // netlify/functions/cloud-stories.js
-// Cloud save/load for stories using Supabase.
-// Requires Netlify Identity JWT (Authorization: Bearer <token>) so that
-// context.clientContext.user is populated.
-
 const { createClient } = require("@supabase/supabase-js");
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
-function json(statusCode, bodyObj, extraHeaders = {}) {
-  return {
-    statusCode,
-    headers: { ...CORS_HEADERS, "Content-Type": "application/json", ...extraHeaders },
-    body: JSON.stringify(bodyObj),
-  };
+function getSupabaseUrl() {
+  return process.env.SUPABASE_URL || "";
 }
 
 function getSupabaseAdminKey() {
@@ -37,20 +29,36 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const user = context?.clientContext?.user;
-    if (!user || !(user.sub || user.email)) {
-      return json(401, { error: "Not authenticated" });
+    const user = context.clientContext && context.clientContext.user;
+
+    if (!user) {
+      return {
+        statusCode: 401,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        body: JSON.stringify({ error: "Not authenticated" }),
+      };
     }
 
-    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SUPABASE_URL = getSupabaseUrl();
     const SUPABASE_ADMIN_KEY = getSupabaseAdminKey();
     const TABLE = process.env.SUPABASE_TABLE || "stories";
 
     if (!SUPABASE_URL || !SUPABASE_ADMIN_KEY) {
-      return json(500, {
-        error:
-          "Supabase env vars not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY).",
+      console.error("Missing Supabase env vars", {
+        SUPABASE_URL_present: !!SUPABASE_URL,
+        SUPABASE_ADMIN_KEY_present: !!SUPABASE_ADMIN_KEY,
       });
+      return {
+        statusCode: 500,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          error: "Supabase env vars not configured",
+          details: {
+            SUPABASE_URL_present: !!SUPABASE_URL,
+            SUPABASE_ADMIN_KEY_present: !!SUPABASE_ADMIN_KEY,
+          },
+        }),
+      };
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ADMIN_KEY, {
@@ -58,7 +66,15 @@ exports.handler = async (event, context) => {
     });
 
     const userId = user.sub || user.email;
+    if (!userId) {
+      return {
+        statusCode: 400,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        body: JSON.stringify({ error: "User id not found in identity token" }),
+      };
+    }
 
+    // ---------- GET (list) ----------
     if (event.httpMethod === "GET") {
       const { data, error } = await supabase
         .from(TABLE)
@@ -67,22 +83,35 @@ exports.handler = async (event, context) => {
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("cloud-stories GET error:", error);
-        return json(500, {
-          error: "Supabase fetch failed",
-          details: error.message || String(error),
-        });
+        console.error("Supabase GET error:", error);
+        return {
+          statusCode: 500,
+          headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            error: "Supabase fetch error",
+            details: error,
+          }),
+        };
       }
 
-      return json(200, { stories: data || [] });
+      return {
+        statusCode: 200,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        body: JSON.stringify({ stories: data || [] }),
+      };
     }
 
+    // ---------- POST (insert) ----------
     if (event.httpMethod === "POST") {
-      let body;
+      let body = {};
       try {
-        body = JSON.parse(event.body || "{}") || {};
+        body = JSON.parse(event.body || "{}");
       } catch {
-        return json(400, { error: "Invalid JSON body" });
+        return {
+          statusCode: 400,
+          headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+          body: JSON.stringify({ error: "Invalid JSON body" }),
+        };
       }
 
       const {
@@ -97,8 +126,12 @@ exports.handler = async (event, context) => {
         coverImageUrl,
       } = body;
 
-      if (!Array.isArray(pages) || pages.length === 0) {
-        return json(400, { error: "Missing story pages" });
+      if (!pages || !Array.isArray(pages) || pages.length === 0) {
+        return {
+          statusCode: 400,
+          headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+          body: JSON.stringify({ error: "Missing story pages" }),
+        };
       }
 
       const insertPayload = {
@@ -118,47 +151,46 @@ exports.handler = async (event, context) => {
         .from(TABLE)
         .insert(insertPayload)
         .select("*")
-        .single();
+        .limit(1)
+        .maybeSingle();
 
       if (error) {
-        console.error("cloud-stories POST error:", error);
-        return json(500, {
-          error: "Supabase insert failed",
-          details: error.message || String(error),
+        console.error("Supabase POST error:", error, "Payload:", {
+          ...insertPayload,
+          pages: `Array(${pages.length})`,
         });
+
+        return {
+          statusCode: 500,
+          headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            error: "Supabase insert error",
+            details: error,
+          }),
+        };
       }
 
-      return json(200, { story: data });
+      return {
+        statusCode: 200,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        body: JSON.stringify({ story: data }),
+      };
     }
 
-    if (event.httpMethod === "DELETE") {
-      // Optional delete support: /cloud-stories?id=<uuid>
-      const id = event.queryStringParameters?.id;
-      if (!id) return json(400, { error: "Missing id" });
-
-      const { error } = await supabase
-        .from(TABLE)
-        .delete()
-        .eq("id", id)
-        .eq("user_id", userId);
-
-      if (error) {
-        console.error("cloud-stories DELETE error:", error);
-        return json(500, {
-          error: "Supabase delete failed",
-          details: error.message || String(error),
-        });
-      }
-
-      return json(200, { ok: true });
-    }
-
-    return json(405, { error: "Method not allowed" });
+    return {
+      statusCode: 405,
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      body: JSON.stringify({ error: "Method not allowed" }),
+    };
   } catch (err) {
-    console.error("cloud-stories fatal error:", err);
-    return json(500, {
-      error: "Cloud stories error",
-      details: err?.message ? err.message : String(err),
-    });
+    console.error("cloud-stories unhandled error:", err);
+    return {
+      statusCode: 500,
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        error: "Cloud stories server error",
+        details: String(err?.message || err),
+      }),
+    };
   }
 };
