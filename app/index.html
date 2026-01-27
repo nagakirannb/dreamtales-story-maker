@@ -1095,9 +1095,14 @@
   });
 
   let data = {};
+  let rawText = "";
   try {
-    data = await res.json();
-  } catch {}
+    rawText = await res.text();
+    data = rawText ? JSON.parse(rawText) : {};
+  } catch {
+    // Non-JSON (e.g., Netlify 500 HTML). Keep a short snippet for debugging.
+    data = { details: (rawText || "").slice(0, 300) };
+  }
 
   if (!res.ok) {
     const msg = data.details
