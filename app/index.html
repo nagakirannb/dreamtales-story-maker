@@ -1105,11 +1105,16 @@
   }
 
   if (!res.ok) {
+  const details = data.details ? ` | details: ${JSON.stringify(data.details)}` : "";
+  throw new Error((data.error || "Cloud stories error") + details);
+}
+
+/*     if (!res.ok) {
     const msg = data.details
       ? `${data.error || "Cloud stories error"}: ${data.details}`
       : (data.error || "Cloud stories error");
     throw new Error(msg);
-  }
+  }*/
 
   return data;
 }
@@ -2075,6 +2080,7 @@ Rules:
   </script>
 </body>
 </html>
+
 
 
 
