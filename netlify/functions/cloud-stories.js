@@ -1,160 +1,177 @@
 // netlify/functions/cloud-stories.js
+const { createClient } = require("@supabase/supabase-js");
 
-exports.handler = async (event, context) => {
-const user = context.clientContext && context.clientContext.user;
-
-if (!user) {
-return {
-statusCode: 401,
-body: JSON.stringify({ error: "Not authenticated" })
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
 };
-}
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const TABLE = process.env.SUPABASE_TABLE || "stories";
-
-if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-return {
-statusCode: 500,
-body: JSON.stringify({ error: "Supabase env vars not configured" })
-};
-}
-
-const userId = user.sub || user.email; // Netlify Identity user id
-
-if (event.httpMethod === "GET") {
-// List stories for this user
-const url = `${SUPABASE_URL}/rest/v1/${TABLE}?user_id=eq.${encodeURIComponent(
-     userId
-   )}&order=created_at.desc`;
-
-try {
-const res = await fetch(url, {
-headers: {
-apikey: SUPABASE_SERVICE_KEY,
-Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
-Accept: "application/json"
-}
-});
-
-const data = await res.json();
-
-if (!res.ok) {
-        console.error("Supabase GET error:", data);
-        return {
-          statusCode: res.status,
-          body: JSON.stringify({ error: "Supabase fetch error" })
-        };
-      }
-  console.error("Supabase POST error:", data);
-  const message =
-    (Array.isArray(data) && data[0] && data[0].message) ||
-    data.message ||
-    JSON.stringify(data);
+function json(statusCode, payload) {
   return {
-    statusCode: res.status,
-    body: JSON.stringify({ error: message || "Supabase insert error" })
+    statusCode,
+    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
   };
 }
 
-
-return {
-statusCode: 200,
-body: JSON.stringify({ stories: data })
-};
-} catch (err) {
-console.error("GET error:", err);
-return {
-statusCode: 500,
-body: JSON.stringify({ error: err.message })
-};
-}
+function getSupabaseAdminKey() {
+  // Support common env var names
+  return (
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE ||
+    process.env.SUPABASE_SERVICE_ROLE_SECRET ||
+    ""
+  );
 }
 
-if (event.httpMethod === "POST") {
-// Save a new story
-let body;
-try {
-body = JSON.parse(event.body || "{}");
-} catch (e) {
-return {
-statusCode: 400,
-body: JSON.stringify({ error: "Invalid JSON body" })
-};
-}
+exports.handler = async (event, context) => {
+  // Always show we reached the handler (so logs won't be empty)
+  console.log("[cloud-stories] hit", event.httpMethod);
 
-const {
-title,
-childName,
-age,
-theme,
-style,
-length,
-moral,
-pages,
-coverImageUrl
-} = body;
+  // Preflight
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 200, headers: CORS_HEADERS, body: "ok" };
+  }
 
-if (!pages || !Array.isArray(pages) || !pages.length) {
-return {
-statusCode: 400,
-body: JSON.stringify({ error: "Missing story pages" })
-};
-}
+  try {
+    // Auth (Netlify Identity)
+    const user = context.clientContext && context.clientContext.user;
+    if (!user) {
+      console.warn("[cloud-stories] no user in context");
+      return json(401, { error: "Not authenticated" });
+    }
 
-const insertPayload = {
-user_id: userId,
-title: title || (childName ? `Story for ${childName}` : "Bedtime story"),
-child_name: childName || null,
-age: age || null,
-theme: theme || null,
-style: style || null,
-length: length || null,
-moral: moral || null,
-pages,
-cover_image_url: coverImageUrl || null
-};
+    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SUPABASE_ADMIN_KEY = getSupabaseAdminKey();
+    const TABLE = process.env.SUPABASE_TABLE || "stories";
 
-const url = `${SUPABASE_URL}/rest/v1/${TABLE}`;
+    if (!SUPABASE_URL || !SUPABASE_ADMIN_KEY) {
+      console.error("[cloud-stories] missing env", {
+        hasUrl: !!SUPABASE_URL,
+        hasKey: !!SUPABASE_ADMIN_KEY,
+      });
+      return json(500, {
+        error: "Supabase env vars not configured",
+        details:
+          "Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY) in Netlify env vars.",
+      });
+    }
 
-try {
-const res = await fetch(url, {
-method: "POST",
-headers: {
-apikey: SUPABASE_SERVICE_KEY,
-Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
-"Content-Type": "application/json",
-Prefer: "return=representation"
-},
-body: JSON.stringify(insertPayload)
-});
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ADMIN_KEY, {
+      auth: { persistSession: false },
+    });
 
-const data = await res.json();
+    const userId = user.sub || user.id || user.email;
+    if (!userId) {
+      console.error("[cloud-stories] could not derive userId", user);
+      return json(400, { error: "Could not determine user id" });
+    }
 
-if (!res.ok) {
-console.error("Supabase POST error:", data);
-return {
-statusCode: res.status,
-body: JSON.stringify({ error: "Supabase insert error" })
-};
-}
+    // -------- GET: list stories --------
+    if (event.httpMethod === "GET") {
+      const { data, error } = await supabase
+        .from(TABLE)
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
 
-return {
-statusCode: 200,
-body: JSON.stringify({ story: data && data[0] })
-};
-} catch (err) {
-console.error("POST error:", err);
-return {
-statusCode: 500,
-body: JSON.stringify({ error: err.message })
-};
-}
-}
+      if (error) {
+        console.error("[cloud-stories] supabase GET error", error);
+        return json(500, {
+          error: "Cloud stories error",
+          details: error.message || String(error),
+        });
+      }
 
-return {
-statusCode: 405,
-body: JSON.stringify({ error: "Method not allowed" })
-};
+      return json(200, { stories: data || [] });
+    }
+
+    // -------- POST: insert story --------
+    if (event.httpMethod === "POST") {
+      let body = {};
+      try {
+        body = JSON.parse(event.body || "{}");
+      } catch (e) {
+        return json(400, { error: "Invalid JSON body" });
+      }
+
+      const {
+        title,
+        childName,
+        age,
+        theme,
+        style,
+        length,
+        moral,
+        pages,
+        coverImageUrl,
+      } = body;
+
+      if (!pages || !Array.isArray(pages) || pages.length === 0) {
+        return json(400, { error: "Missing story pages" });
+      }
+
+      const insertPayload = {
+        user_id: userId,
+        title: title || (childName ? `Story for ${childName}` : "Bedtime story"),
+        child_name: childName || null,
+        age: age || null,
+        theme: theme || null,
+        style: style || null,
+        length: length || null,
+        moral: moral || null,
+        pages, // jsonb column
+        cover_image_url: coverImageUrl || null,
+      };
+
+      const { data, error } = await supabase
+        .from(TABLE)
+        .insert(insertPayload)
+        .select("*")
+        .single();
+
+      if (error) {
+        console.error("[cloud-stories] supabase POST error", error);
+        return json(500, {
+          error: "Cloud stories error",
+          details: error.message || String(error),
+        });
+      }
+
+      return json(200, { story: data });
+    }
+
+    // -------- DELETE (optional): delete story by id --------
+    if (event.httpMethod === "DELETE") {
+      const id = event.queryStringParameters && event.queryStringParameters.id;
+      if (!id) return json(400, { error: "Missing id" });
+
+      const { error } = await supabase
+        .from(TABLE)
+        .delete()
+        .eq("id", id)
+        .eq("user_id", userId);
+
+      if (error) {
+        console.error("[cloud-stories] supabase DELETE error", error);
+        return json(500, {
+          error: "Cloud stories error",
+          details: error.message || String(error),
+        });
+      }
+
+      return json(200, { ok: true });
+    }
+
+    return json(405, { error: "Method not allowed" });
+  } catch (err) {
+    // This guarantees you NEVER get Netlify's generic Internal Error again (in most cases)
+    console.error("[cloud-stories] fatal", err);
+    return json(500, {
+      error: "Cloud stories fatal error",
+      details: err?.message || String(err),
+    });
+  }
 };
